@@ -39,27 +39,7 @@ namespace WalletConnectSharp.Network
             throw new NotImplementedException();
         }
 
-        public void On<T>(string eventId, EventHandler<JsonRpcResponseEvent<T>> callback) where T : JsonRpcResponse
-        {
-            throw new NotImplementedException();
-        }
-
-        public void On<T>(string eventId, EventHandler<JsonRpcRequestEvent<T>> callback) where T : JsonRpcRequest
-        {
-            throw new NotImplementedException();
-        }
-
         public void Once<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Once<T>(string eventId, EventHandler<JsonRpcResponseEvent<T>> callback) where T : JsonRpcResponse
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Once<T>(string eventId, EventHandler<JsonRpcRequestEvent<T>> callback) where T : JsonRpcRequest
         {
             throw new NotImplementedException();
         }
@@ -69,27 +49,7 @@ namespace WalletConnectSharp.Network
             throw new NotImplementedException();
         }
 
-        public void Off<T>(string eventId, EventHandler<JsonRpcResponseEvent<T>> callback) where T : JsonRpcResponse
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Off<T>(string eventId, EventHandler<JsonRpcRequestEvent<T>> callback) where T : JsonRpcRequest
-        {
-            throw new NotImplementedException();
-        }
-
         public void RemoveListener<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void RemoveListener<T>(string eventId, EventHandler<JsonRpcResponseEvent<T>> callback) where T : JsonRpcResponse
-        {
-            throw new NotImplementedException();
-        }
-
-        public void RemoveListener<T>(string eventId, EventHandler<JsonRpcRequestEvent<T>> callback) where T : JsonRpcRequest
         {
             throw new NotImplementedException();
         }
