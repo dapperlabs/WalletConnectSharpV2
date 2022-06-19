@@ -5,7 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WalletConnectSharp.EventsTest\WalletConnectSharp.EventsTest.csproj" />
       <ProjectReference Include="..\WalletConnectSharp.Events\WalletConnectSharp.Events.csproj" />
     </ItemGroup>
 

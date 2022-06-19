@@ -9,14 +9,16 @@ namespace WalletConnectSharp.Network
         
         bool Connecting { get; }
 
+        Task Open();
+        
         Task Open<T>(T options);
 
         Task Close();
         
-        Task SendRequest<T>(T requestPayload, object context) where T : IJsonRpcRequest<T>;
+        Task SendRequest<T>(IJsonRpcRequest<T> requestPayload, object context);
+
+        Task SendResult<T>(IJsonRpcResult<T> requestPayload, object context);
         
-        Task SendResult<T>(T requestPayload, object context) where T : IJsonRpcResult<T>;
-        
-        Task SendError<T>(T requestPayload, object context) where T : IJsonRpcError;
+        Task SendError(IJsonRpcError requestPayload, object context);
     }
 }
