@@ -1,70 +1,70 @@
 using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Linq;
+using System.Reflection;
 using WalletConnectSharp.Events.Model;
 
 namespace WalletConnectSharp.Events
 {
-    public class EventDelegator : IDisposable
+    public class EventDelegator
     {
-        private Dictionary<string, List<IEventProvider>> Listeners = new Dictionary<string, List<IEventProvider>>();
-
         public void ListenFor<T>(string eventId, EventHandler<GenericEvent<T>> callback)
         {  
             EventManager<T, GenericEvent<T>>.Instance.EventTriggers[eventId] += callback;
-
-            SubscribeProvider(eventId, EventFactory.Instance.ProviderFor<T>());
         }
 
-        private void SubscribeProvider(string eventId, IEventProvider provider)
+        public void RemoveListener<T>(string eventId, EventHandler<GenericEvent<T>> callback)
         {
-            List<IEventProvider> listProvider;
-            if (!Listeners.ContainsKey(eventId))
-            {
-                //Debug.Log("Adding new EventProvider list for " + eventId);
-                listProvider = new List<IEventProvider>();
-                Listeners.Add(eventId, listProvider);
-            }
-            else
-            {
-                listProvider = Listeners[eventId];
-            }
-            listProvider.Add(provider);
+            EventManager<T, GenericEvent<T>>.Instance.EventTriggers[eventId] -= callback;
         }
         
-        public bool Trigger<T>(string topic, T obj)
+        public void ListenForOnce<T>(string eventId, EventHandler<GenericEvent<T>> callback)
         {
-            return Trigger(topic, JsonConvert.SerializeObject(obj));
+            EventHandler<GenericEvent<T>> wrappedCallback = null;
+            
+            wrappedCallback = delegate(object sender, GenericEvent<T> @event)
+            {
+                callback(sender, @event);
+                RemoveListener(eventId, wrappedCallback);
+                
+            };
+            
+            EventManager<T, GenericEvent<T>>.Instance.EventTriggers[eventId] += wrappedCallback;
         }
 
 
-        public bool Trigger(string topic, string json)
+        public bool Trigger<T>(string topic, T json)
         {
-            if (Listeners.ContainsKey(topic))
+            bool wasTriggered = false;
+            //Find all EventFactories of type T
+            var inheritedT = from assembly in AppDomain.CurrentDomain.GetAssemblies()
+                from type in assembly.GetTypes()
+                where type.IsSubclassOf(typeof(T))
+                select type;
+
+            var allPossibleTypes = inheritedT.Concat(typeof(T).GetInterfaces()).Append(typeof(T));
+            
+            foreach (var type in allPossibleTypes)
             {
-                var providerList = Listeners[topic];
+                var genericFactoryType = typeof(EventFactory<>).MakeGenericType(type);
 
-                for (int i = 0; i < providerList.Count; i++)
+                var instanceProperty = genericFactoryType.GetProperty("Instance");
+
+                var genericFactory = instanceProperty.GetValue(null, null);
+
+                var genericProviderProperty = genericFactoryType.GetProperty("Provider");
+
+                var genericProvider = genericProviderProperty.GetValue(genericFactory);
+
+                if (genericProvider != null)
                 {
-                    var provider = providerList[i];
-                    
-                    provider.PropagateEvent(topic, json);
-                }
+                    MethodInfo propagateEventMethod = genericProvider.GetType().GetMethod("PropagateEvent");
 
-                return providerList.Count > 0;
+                    propagateEventMethod.Invoke(genericProvider, new object[] { topic, json });
+                    wasTriggered = true;
+                }
             }
 
-            return false;
-        }
-
-        public void Dispose()
-        {
-            Clear();
-        }
-
-        public void Clear()
-        {
-            Listeners.Clear();
+            return wasTriggered;
         }
     }
 }

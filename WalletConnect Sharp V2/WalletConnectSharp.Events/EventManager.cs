@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace WalletConnectSharp.Events
 {
-    public class EventManager<T, TEventArgs> : IEventProvider where TEventArgs : IEvent<T>, new()
+    public class EventManager<T, TEventArgs> : IEventProvider<T> where TEventArgs : IEvent<T>, new()
     {
         private static EventManager<T, TEventArgs> _instance;
 
@@ -25,14 +25,14 @@ namespace WalletConnectSharp.Events
         {
             EventTriggers = new EventHandlerMap<TEventArgs>(CallbackBeforeExecuted);
             
-            EventFactory.Instance.Register<T>(this);
+            EventFactory<T>.Instance.Register(this);
         }
         
         private void CallbackBeforeExecuted(object sender, TEventArgs e)
         {
         }
 
-        public void PropagateEvent(string topic, string responseJson)
+        public void PropagateEvent(string topic, T response)
         {
             if (EventTriggers.Contains(topic))
             {
@@ -40,7 +40,7 @@ namespace WalletConnectSharp.Events
 
                 if (eventTrigger != null)
                 {
-                    var response = JsonConvert.DeserializeObject<T>(responseJson);
+                    //var response = JsonConvert.DeserializeObject<T>(responseJson);
                     var eventArgs = new TEventArgs();
                     eventArgs.SetData(response);
                     eventTrigger(this, eventArgs);

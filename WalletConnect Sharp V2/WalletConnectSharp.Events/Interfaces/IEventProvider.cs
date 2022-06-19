@@ -1,7 +1,7 @@
 namespace WalletConnectSharp.Events
 {
-    public interface IEventProvider
+    public interface IEventProvider<in T>
     {
-        void PropagateEvent(string topic, string responseJson);
+        void PropagateEvent(string topic, T eventData);
     }
 }

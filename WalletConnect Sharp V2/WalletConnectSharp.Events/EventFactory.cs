@@ -3,41 +3,38 @@ using System.Collections.Generic;
 
 namespace WalletConnectSharp.Events
 {
-    public class EventFactory
+    public class EventFactory<T>
     {
-        private static EventFactory _instance;
-        
-        private Dictionary<Type, IEventProvider> _eventProviders = new Dictionary<Type, IEventProvider>();
+        private static EventFactory<T> _instance;
 
-        public static EventFactory Instance
+        private IEventProvider<T> _eventProvider;
+
+        public static EventFactory<T> Instance
         {
             get
             {
                 if (_instance == null)
                 {
-                    _instance = new EventFactory();
+                    _instance = new EventFactory<T>();
                 }
                 return _instance;
             }
         }
 
-        public void Register<T>(IEventProvider provider)
+        public void Register(IEventProvider<T> provider)
         {
-            Type t = typeof(T);
-
-            if (_eventProviders.ContainsKey(t))
-                return;
+            if (_eventProvider != null)
+                throw new Exception("Provider for type " + typeof(T) + " already set");
             
-            _eventProviders.Add(t, provider);
+            _eventProvider = provider;
         }
 
-        public IEventProvider ProviderFor<T>()
+        public IEventProvider<T> Provider
         {
-            Type t = typeof(T);
-            if (_eventProviders.ContainsKey(t))
-                return _eventProviders[t];
-
-            return null;
+            get
+            {
+                return _eventProvider;
+            }
         }
     }
 }
