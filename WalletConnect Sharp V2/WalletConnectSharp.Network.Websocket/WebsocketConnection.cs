@@ -127,7 +127,7 @@ namespace WalletConnectSharp.Network.Websocket
             catch (Exception e)
             {
                 Events.Trigger("register_error", e);
-                OnClose();
+                OnClose(new DisconnectionInfo(DisconnectionType.Error, WebSocketCloseStatus.Empty, e.Message, null, e));
 
                 throw;
             }
@@ -145,15 +145,18 @@ namespace WalletConnectSharp.Network.Websocket
 
         private void OnDisconnect(DisconnectionInfo obj)
         {
-            OnClose();
+            if (obj.Exception != null)
+                Events.Trigger("error", obj.Exception);
+            
+            OnClose(obj);
         }
         
-        private void OnClose()
+        private void OnClose(DisconnectionInfo obj)
         {
             _socket.Dispose();
             this._socket = null;
             this._registering = false;
-            Events.Trigger<object>("close", null);
+            Events.Trigger("close", obj);
         }
 
         private void OnPayload(ResponseMessage obj)
@@ -182,7 +185,7 @@ namespace WalletConnectSharp.Network.Websocket
 
             await _socket.Stop(WebSocketCloseStatus.NormalClosure, "Close Invoked");
             
-            OnClose();
+            OnClose(new DisconnectionInfo(DisconnectionType.Exit, WebSocketCloseStatus.Empty, "Close Invoked", null, null));
         }
 
         public async Task SendRequest<T>(IJsonRpcRequest<T> requestPayload, object context)

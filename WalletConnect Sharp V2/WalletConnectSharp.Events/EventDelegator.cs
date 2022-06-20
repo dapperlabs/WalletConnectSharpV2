@@ -55,7 +55,7 @@ namespace WalletConnectSharp.Events
                 where type.IsSubclassOf(typeof(T))
                 select type;
 
-            var allPossibleTypes = inheritedT.Concat(typeof(T).GetInterfaces()).Append(typeof(T));
+            var allPossibleTypes = inheritedT.Concat(typeof(T).GetInterfaces()).Append(typeof(T)).Append(typeof(object));
             
             foreach (var type in allPossibleTypes)
             {

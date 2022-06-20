@@ -7,6 +7,8 @@ namespace WalletConnectSharp.Network
     {
         Task Connect<T>(T @params);
         
+        Task Connect();
+        
         Task Disconnect();
         
         Task<TR> Request<T, TR>(IRequestArguments<T> request, object context);

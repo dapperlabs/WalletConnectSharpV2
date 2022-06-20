@@ -61,7 +61,7 @@ namespace WalletConnectSharp.Network
         {
             this._connection = connection;
             RegisterEventListeners();
-            Events.Trigger<object>("connect", null);
+            Events.Trigger("connect", connection);
         }
 
         public async Task Connect<T>(T @params)
@@ -81,6 +81,11 @@ namespace WalletConnectSharp.Network
             await _connection.Open(@params);
             
             FinalizeConnection(_connection);
+        }
+
+        public async Task Connect()
+        {
+            await Connect(_connection);
         }
 
         public async Task Disconnect()
