@@ -2,6 +2,10 @@ using Newtonsoft.Json;
 
 namespace WalletConnectSharp.Network
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public interface IJsonRpcProviderMessage<T>
     {
         [JsonProperty("type")]

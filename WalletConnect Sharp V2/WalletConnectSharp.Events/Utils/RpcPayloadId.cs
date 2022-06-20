@@ -2,7 +2,10 @@ using System;
 
 namespace WalletConnectSharp.Events.Utils
 {
-    public class RpcPayloadId
+    /// <summary>
+    /// A static class that can generate random JSONRPC ids using the current time as a source of randomness 
+    /// </summary>
+    public static class RpcPayloadId
     {
         private static readonly Random rng = new Random();
         private static readonly DateTime UnixEpoch =

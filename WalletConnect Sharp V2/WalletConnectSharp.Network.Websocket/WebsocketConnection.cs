@@ -10,6 +10,9 @@ using Websocket.Client;
 
 namespace WalletConnectSharp.Network.Websocket
 {
+    /// <summary>
+    /// A JSON RPC connection using Websocket.Client library + EventDelegator
+    /// </summary>
     public class WebsocketConnection : IJsonRpcConnection
     {
         private EventDelegator _delegator;

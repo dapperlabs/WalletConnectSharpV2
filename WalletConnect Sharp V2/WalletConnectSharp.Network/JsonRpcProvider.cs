@@ -8,6 +8,9 @@ using WalletConnectSharp.Network.Models;
 
 namespace WalletConnectSharp.Network
 {
+    /// <summary>
+    /// A full implementation of the IJsonRpcProvider interface using the EventDelegator
+    /// </summary>
     public class JsonRpcProvider : IJsonRpcProvider
     {
         private IJsonRpcConnection _connection;

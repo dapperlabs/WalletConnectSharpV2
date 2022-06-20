@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace WalletConnectSharp.Events
 {
+    /// <summary>
+    /// A mapping of eventIds to EventHandler objects. This using a Dictionary as the backing datastore
+    /// </summary>
+    /// <typeparam name="TEventArgs">The type of EventHandler's argument to store</typeparam>
     public class EventHandlerMap<TEventArgs>
     {
         private Dictionary<string, EventHandler<TEventArgs>> mapping =
@@ -10,6 +14,10 @@ namespace WalletConnectSharp.Events
 
         private EventHandler<TEventArgs> BeforeEventExecuted;
 
+        /// <summary>
+        /// Create a new EventHandlerMap with an initial EventHandler to append onto
+        /// </summary>
+        /// <param name="callbackBeforeExecuted">The initial EventHandler to use as the EventHandler.</param>
         public EventHandlerMap(EventHandler<TEventArgs> callbackBeforeExecuted)
         {
             if (callbackBeforeExecuted == null)
@@ -24,31 +32,41 @@ namespace WalletConnectSharp.Events
         {
         }
 
-        public EventHandler<TEventArgs> this[string topic]
+        /// <summary>
+        /// Get an EventHandler by its eventId. If the provided eventId does not exist, then the
+        /// initial EventHandler is returned and tracking begins
+        /// </summary>
+        /// <param name="eventId">The eventId of the EventHandler</param>
+        public EventHandler<TEventArgs> this[string eventId]
         {
             get
             {
-                if (!mapping.ContainsKey(topic))
+                if (!mapping.ContainsKey(eventId))
                 {
-                    mapping.Add(topic, BeforeEventExecuted);
+                    mapping.Add(eventId, BeforeEventExecuted);
                 }
                 
-                return mapping[topic];
+                return mapping[eventId];
             }
             set
             {
-                if (mapping.ContainsKey(topic))
+                if (mapping.ContainsKey(eventId))
                 {
-                    mapping.Remove(topic);
+                    mapping.Remove(eventId);
                 }
                 
-                mapping.Add(topic, value);
+                mapping.Add(eventId, value);
             }
         }
 
-        public bool Contains(string topic)
+        /// <summary>
+        /// Check if a given eventId has any EventHandlers registered yet.
+        /// </summary>
+        /// <param name="eventId">The eventId to check for</param>
+        /// <returns>true if the eventId has any EventHandlers, false otherwise</returns>
+        public bool Contains(string eventId)
         {
-            return mapping.ContainsKey(topic);
+            return mapping.ContainsKey(eventId);
         }
     }
 }
