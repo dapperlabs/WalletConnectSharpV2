@@ -5,9 +5,9 @@ namespace WalletConnectSharp.Network.Models
 {
     public class JsonRpcRequest<T> : IJsonRpcRequest<T>
     {
-        public string Method { get; private set; }
-        public T Params { get; private set; }
-        public long Id { get; private set; }
+        public string Method { get; set; }
+        public T Params { get; set; }
+        public long Id { get; set; }
 
         public string JsonRPC
         {
@@ -15,6 +15,10 @@ namespace WalletConnectSharp.Network.Models
             {
                 return "2.0";
             }
+        }
+
+        public JsonRpcRequest()
+        {
         }
 
         public JsonRpcRequest(string method, T param, long? id = null)

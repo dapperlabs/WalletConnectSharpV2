@@ -1,9 +1,10 @@
+using System;
 using System.Threading.Tasks;
 using WalletConnectSharp.Events.Interfaces;
 
 namespace WalletConnectSharp.Network
 {
-    public interface IJsonRpcConnection : IEvents
+    public interface IJsonRpcConnection : IEvents, IDisposable
     {
         bool Connected { get; }
         

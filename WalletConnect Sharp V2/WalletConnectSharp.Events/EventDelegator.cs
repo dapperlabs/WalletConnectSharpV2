@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using Newtonsoft.Json;
 using WalletConnectSharp.Events.Model;
 
 namespace WalletConnectSharp.Events
@@ -30,8 +31,21 @@ namespace WalletConnectSharp.Events
             
             EventManager<T, GenericEvent<T>>.Instance.EventTriggers[eventId] += wrappedCallback;
         }
-
-
+        
+        public void ListenForAndDeserialize<TR>(string eventId, EventHandler<GenericEvent<TR>> callback)
+        {
+            ListenFor<TR>(eventId, callback);
+            
+            ListenFor<string>(eventId, delegate(object sender, GenericEvent<string> @event)
+            {
+                //Attempt to Deserialize
+                var converted = JsonConvert.DeserializeObject<TR>(@event.Response);
+                
+                //When we convert, we trigger same eventId with required type TR
+                Trigger(eventId, converted);
+            });
+        }
+        
         public bool Trigger<T>(string topic, T json)
         {
             bool wasTriggered = false;

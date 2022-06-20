@@ -1,13 +1,21 @@
 using System;
+using System.IO;
+using System.Net.WebSockets;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
+using WalletConnectSharp.Network.Models;
+using Websocket.Client;
 
 namespace WalletConnectSharp.Network.Websocket
 {
     public class WebsocketConnection : IJsonRpcConnection
     {
         private EventDelegator _delegator;
+        private WebsocketClient _socket;
+        private string _uri;
+        private bool _registering;
 
         public EventDelegator Events
         {
@@ -15,6 +23,31 @@ namespace WalletConnectSharp.Network.Websocket
             {
                 return _delegator;
             }
+        }
+        
+        public bool Connected
+        {
+            get
+            {
+                return _socket != null;
+            }
+        }
+
+        public bool Connecting
+        {
+            get
+            {
+                return _registering;
+            }
+        }
+
+        public WebsocketConnection(string uri)
+        {
+            if (!Validation.IsWsUrl(uri))
+                throw new ArgumentException("Provided URL is not compatible with WebSocket connection: " + uri);
+            
+            this._uri = uri;
+            _delegator = new EventDelegator();
         }
 
         public void On<T>(string eventId, EventHandler<GenericEvent<T>> callback)
@@ -37,37 +70,191 @@ namespace WalletConnectSharp.Network.Websocket
             _delegator.RemoveListener(eventId, callback);
         }
 
-        public bool Connected { get; private set; }
-        public bool Connecting { get; private set; }
+        public async Task Open()
+        {
+            await Register(_uri);
+        }
+
+        public async Task Open<T>(T options)
+        {
+            if (typeof(string).IsAssignableFrom(typeof(T)))
+            {
+                await Register(options as string);
+            }
+
+            await Open();
+        }
+
+        private async Task<WebsocketClient> Register(string url)
+        {
+            if (!Validation.IsWsUrl(url))
+            {
+                throw new ArgumentException("Provided URL is not compatible with WebSocket connection: " + url);
+            }
+
+            if (_registering)
+            {
+                TaskCompletionSource<WebsocketClient> registeringTask =
+                    new TaskCompletionSource<WebsocketClient>(TaskCreationOptions.None);
+                
+                Events.ListenForOnce("register_error",
+                    delegate(object sender, GenericEvent<Exception> @event)
+                    {
+                        registeringTask.SetException(@event.Response);
+                    });
+                
+                Events.ListenForOnce("open",
+                    delegate(object sender, GenericEvent<WebsocketClient> @event)
+                    {
+                        registeringTask.SetResult(@event.Response);
+                    });
+
+                await registeringTask.Task;
+
+                return registeringTask.Task.Result;
+            }
+
+            this._uri = url;
+            this._registering = true;
+
+            try
+            {
+                _socket = new WebsocketClient(new Uri(_uri));
+                await _socket.Start();
+                OnOpen(_socket);
+                return _socket;
+            }
+            catch (Exception e)
+            {
+                Events.Trigger("register_error", e);
+                OnClose();
+
+                throw;
+            }
+        }
+
+        private void OnOpen(WebsocketClient socket)
+        {
+            socket.MessageReceived.Subscribe(OnPayload);
+            socket.DisconnectionHappened.Subscribe(OnDisconnect);
+
+            this._socket = socket;
+            this._registering = false;
+            Events.Trigger("open", _socket);
+        }
+
+        private void OnDisconnect(DisconnectionInfo obj)
+        {
+            OnClose();
+        }
         
-        public Task Open()
+        private void OnClose()
         {
-            throw new NotImplementedException();
+            _socket.Dispose();
+            this._socket = null;
+            this._registering = false;
+            Events.Trigger<object>("close", null);
         }
 
-        public Task Open<T>(T options)
+        private void OnPayload(ResponseMessage obj)
         {
-            throw new NotImplementedException();
+            string json = null;
+            switch (obj.MessageType)
+            {
+                case WebSocketMessageType.Binary:
+                    return;
+                case WebSocketMessageType.Text:
+                    json = obj.Text;
+                    break;
+                case WebSocketMessageType.Close:
+                    return;
+            }
+
+            if (string.IsNullOrWhiteSpace(json)) return;
+
+            Events.Trigger("payload", json);
         }
 
-        public Task Close()
+        public async Task Close()
         {
-            throw new NotImplementedException();
+            if (_socket == null)
+                throw new IOException("Connection already closed");
+
+            await _socket.Stop(WebSocketCloseStatus.NormalClosure, "Close Invoked");
+            
+            OnClose();
         }
 
-        public Task SendRequest<T>(IJsonRpcRequest<T> requestPayload, object context)
+        public async Task SendRequest<T>(IJsonRpcRequest<T> requestPayload, object context)
         {
-            throw new NotImplementedException();
+            if (_socket == null)
+                _socket = await Register(_uri);
+
+            try
+            {
+                _socket.Send(JsonConvert.SerializeObject(requestPayload));
+            }
+            catch (Exception e)
+            {
+                OnError<T>(requestPayload, e);
+            }
         }
 
-        public Task SendResult<T>(IJsonRpcResult<T> requestPayload, object context)
+        public async Task SendResult<T>(IJsonRpcResult<T> requestPayload, object context)
         {
-            throw new NotImplementedException();
+            if (_socket == null)
+                _socket = await Register(_uri);
+
+            try
+            {
+                _socket.Send(JsonConvert.SerializeObject(requestPayload));
+            }
+            catch (Exception e)
+            {
+                OnError<T>(requestPayload, e);
+            }
         }
 
-        public Task SendError(IJsonRpcError requestPayload, object context)
+        public async Task SendError(IJsonRpcError requestPayload, object context)
         {
-            throw new NotImplementedException();
+            if (_socket == null)
+                _socket = await Register(_uri);
+
+            try
+            {
+                _socket.Send(JsonConvert.SerializeObject(requestPayload));
+            }
+            catch (Exception e)
+            {
+                OnError<object>(requestPayload, e);
+            }
+        }
+
+        public async void Dispose()
+        {
+            if (Connected)
+            {
+                await Close();
+            }
+        }
+
+        private string addressNotFoundError = "getaddrinfo ENOTFOUND";
+        private string connectionRefusedError = "connect ECONNREFUSED";
+        private void OnError<T>(IJsonRpcPayload ogPayload, Exception e)
+        {
+            var exception = e.Message.Contains(addressNotFoundError) || e.Message.Contains(connectionRefusedError)
+                ? new IOException("Unavailable WS RPC url at " + _uri) : e;
+
+            var message = exception.Message;
+            var payload = new JsonRpcResponse<T>(ogPayload.Id, new ErrorResponse()
+            {
+                Code = e.HResult,
+                Data = null,
+                Message = e.Message
+            }, default(T));
+
+            //Trigger the payload event, converting the new JsonRpcResponse object to JSON string
+            Events.Trigger("payload", JsonConvert.SerializeObject(payload));
         }
     }
 }

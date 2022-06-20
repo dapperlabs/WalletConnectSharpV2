@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
 using WalletConnectSharp.Network.Models;
@@ -103,8 +104,8 @@ namespace WalletConnectSharp.Network
 
             TaskCompletionSource<TR> requestTask = new TaskCompletionSource<TR>(TaskCreationOptions.None);
             
-            Events.ListenFor(request.Id.ToString(),
-                delegate(object sender, GenericEvent<IJsonRpcResult<TR>> @event)
+            Events.ListenForAndDeserialize(request.Id.ToString(),
+                delegate(object sender, GenericEvent<JsonRpcResponse<TR>> @event)
                 {
                     var result = @event.Response;
 
@@ -117,6 +118,7 @@ namespace WalletConnectSharp.Network
                         requestTask.SetResult(result.Result);
                     }
                 });
+            
 
             await _connection.SendRequest(request, context);
 
@@ -149,8 +151,8 @@ namespace WalletConnectSharp.Network
         {
             if (_hasRegisteredEventListeners) return;
             
-            _connection.On<IJsonRpcPayload>("payload", OnPayload);
-            _connection.On<dynamic>("close", OnConnectionDisconnected);
+            _connection.On<string>("payload", OnPayload);
+            _connection.On<object>("close", OnConnectionDisconnected);
             _connection.On<Exception>("error", OnConnectionError);
             _hasRegisteredEventListeners = true;
         }
@@ -160,26 +162,31 @@ namespace WalletConnectSharp.Network
             Events.Trigger("error", e.Response);
         }
 
-        private void OnConnectionDisconnected(object sender, GenericEvent<dynamic> e)
+        private void OnConnectionDisconnected(object sender, GenericEvent<object> e)
         {
             Events.Trigger("disconnect", e.Response as object);
         }
 
-        private void OnPayload(object sender, GenericEvent<IJsonRpcPayload> e)
+        private void OnPayload(object sender, GenericEvent<string> e)
         {
-            var payload = e.Response;
+            var json = e.Response;
 
-            Events.Trigger("payload", payload);
+            var payload = JsonConvert.DeserializeObject<JsonRpcPayload>(json);
 
-            if (typeof(IJsonRpcRequest<>).IsInstanceOfType(payload))
+            if (payload == null)
             {
-                IJsonRpcRequest<dynamic> request = (IJsonRpcRequest<dynamic>)payload;
-
-                Events.Trigger("message", request);
+                throw new IOException("Invalid payload: " + json);
+            }
+            
+            Events.Trigger("payload", payload);
+            
+            if (payload.IsRequest)
+            {
+                Events.Trigger("message", json);
             }
             else
             {
-                Events.Trigger(payload.Id.ToString(), payload);
+                Events.Trigger(payload.Id.ToString(), json);
             }
         }
     }
