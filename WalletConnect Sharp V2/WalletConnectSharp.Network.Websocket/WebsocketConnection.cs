@@ -251,9 +251,9 @@ namespace WalletConnectSharp.Network.Websocket
             var message = exception.Message;
             var payload = new JsonRpcResponse<T>(ogPayload.Id, new ErrorResponse()
             {
-                Code = e.HResult,
+                Code = exception.HResult,
                 Data = null,
-                Message = e.Message
+                Message = message
             }, default(T));
 
             //Trigger the payload event, converting the new JsonRpcResponse object to JSON string
