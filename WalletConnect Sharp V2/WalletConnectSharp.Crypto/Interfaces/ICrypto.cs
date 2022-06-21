@@ -28,6 +28,6 @@ namespace WalletConnectSharp.Crypto.Interfaces
 
         Task<string> Encode(string topic, IJsonRpcPayload payload);
 
-        Task<IJsonRpcPayload> Decode(string topic, string encoded);
+        Task<T> Decode<T>(string topic, string encoded) where T : IJsonRpcPayload;
     }
 }

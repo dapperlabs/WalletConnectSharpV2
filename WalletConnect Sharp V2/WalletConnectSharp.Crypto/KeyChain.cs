@@ -1,37 +1,127 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using WalletConnectSharp.Common;
 using WalletConnectSharp.Crypto.Interfaces;
 
 namespace WalletConnectSharp.Crypto
 {
     public class KeyChain : IKeyChain
     {
-        public IReadOnlyDictionary<string, string> Keychain { get; }
-        public string Name { get; }
-        public string Context { get; }
-        public Task Init()
+        private Dictionary<string, string> _keyChain;
+        
+        public IReadOnlyDictionary<string, string> Keychain => new ReadOnlyDictionary<string, string>(_keyChain);
+
+        public string Name
         {
-            throw new System.NotImplementedException();
+            get
+            {
+                return "keychain";
+            }
         }
 
-        public bool Has(string tag)
+        public string Context
         {
-            throw new System.NotImplementedException();
+            get
+            {
+                //TODO Set to logger context
+                return "walletconnectsharp";
+            }
         }
 
-        public Task Set(string tag, string key)
+        public string Version
         {
-            throw new System.NotImplementedException();
+            get
+            {
+                return "0.3";
+            }
         }
 
-        public string Get(string tag)
+        public string StorageKey => this._storagePrefix + this.Version + "//" + this.Name;
+
+        private bool _initialized = false;
+        private readonly string _storagePrefix = Constants.CORE_STORAGE_PREFIX;
+
+        public async Task Init()
         {
-            throw new System.NotImplementedException();
+            if (!this._initialized)
+            {
+                //TODO Grab keychain from storage
+                var keyChain = await GetKeyChain();
+                if (keyChain != null)
+                {
+                    this._keyChain = keyChain;
+                }
+
+                this._initialized = true;
+            }
         }
 
-        public Task Delete(string tag)
+        private async Task<Dictionary<string, string>> GetKeyChain()
         {
-            throw new System.NotImplementedException();
+            //TODO Grab from storage
+            return new Dictionary<string, string>();
+        }
+
+        private async Task SaveKeyChain()
+        {
+            //TODO Save keychain to storage
+        }
+
+        public Task<bool> Has(string tag)
+        {
+            this.IsInitialized();
+            return Task.FromResult(this._keyChain.ContainsKey(tag));
+        }
+
+        public async Task Set(string tag, string key)
+        {
+            this.IsInitialized();
+            if (await Has(tag))
+            {
+                this._keyChain[tag] = key;
+            }
+            else
+            {
+                this._keyChain.Add(tag, key);
+            }
+
+            await SaveKeyChain();
+        }
+
+        public async Task<string> Get(string tag)
+        {
+            this.IsInitialized();
+
+            if (!await Has(tag))
+            {
+                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY, new {tag});
+            }
+
+            return this._keyChain[tag];
+        }
+
+        public async Task Delete(string tag)
+        {
+            this.IsInitialized();
+            
+            if (!await Has(tag))
+            {
+                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY, new {tag});
+            }
+
+            _keyChain.Remove(tag);
+
+            await this.SaveKeyChain();
+        }
+
+        private void IsInitialized()
+        {
+            if (!this._initialized)
+            {
+                throw WalletConnectException.FromType(ErrorType.NOT_INITIALIZED, new {Name});
+            }
         }
     }
 }

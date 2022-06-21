@@ -9,4 +9,8 @@
       <ProjectReference Include="..\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="NSec.Cryptography" Version="22.4.0" />
+    </ItemGroup>
+
 </Project>

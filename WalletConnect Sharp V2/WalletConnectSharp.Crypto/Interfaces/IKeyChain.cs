@@ -10,11 +10,11 @@ namespace WalletConnectSharp.Crypto.Interfaces
 
         Task Init();
 
-        bool Has(string tag);
+        Task<bool> Has(string tag);
 
         Task Set(string tag, string key);
 
-        string Get(string tag);
+        Task<string> Get(string tag);
 
         Task Delete(string tag);
     }
