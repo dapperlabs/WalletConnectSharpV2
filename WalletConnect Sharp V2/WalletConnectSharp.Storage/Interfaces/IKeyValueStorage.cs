@@ -7,7 +7,7 @@ namespace WalletConnectSharp.Storage.Interfaces
     {
         Task<string[]> GetKeys();
 
-        Task<Tuple<string, T>[]> GetEntriesOfType<T>();
+        Task<T[]> GetEntriesOfType<T>();
 
         Task<object[]> GetEntries();
 
