@@ -8,6 +8,8 @@ using NSec.Cryptography;
 using WalletConnectSharp.Common;
 using WalletConnectSharp.Crypto.Interfaces;
 using WalletConnectSharp.Network;
+using WalletConnectSharp.Storage;
+using WalletConnectSharp.Storage.Interfaces;
 
 namespace WalletConnectSharp.Crypto
 {
@@ -31,17 +33,18 @@ namespace WalletConnectSharp.Crypto
         }
         
         public IKeyChain KeyChain { get; private set; }
+        
+        public IKeyValueStorage Storage { get; private set; }
 
         private bool _initialized;
 
-        public Crypto(IKeyChain keyChain = null)
+        public Crypto(IKeyChain keyChain = null, IKeyValueStorage storage = null)
         {
-            if (keyChain == null)
-            {
-                keyChain = new KeyChain();
-            }
+            storage ??= new DictStorage();
+            keyChain ??= new KeyChain(storage);
 
             this.KeyChain = keyChain;
+            this.Storage = storage;
         }
         public async Task Init()
         {

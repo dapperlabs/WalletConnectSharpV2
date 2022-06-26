@@ -4,15 +4,17 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
 using WalletConnectSharp.Crypto.Interfaces;
+using WalletConnectSharp.Storage.Interfaces;
 
 namespace WalletConnectSharp.Crypto
 {
     public class KeyChain : IKeyChain
     {
-        private Dictionary<string, string> _keyChain;
+        private Dictionary<string, string> _keyChain = new Dictionary<string, string>();
+        private IKeyValueStorage _storage;
         
         public IReadOnlyDictionary<string, string> Keychain => new ReadOnlyDictionary<string, string>(_keyChain);
-
+        
         public string Name
         {
             get
@@ -43,11 +45,15 @@ namespace WalletConnectSharp.Crypto
         private bool _initialized = false;
         private readonly string _storagePrefix = Constants.CORE_STORAGE_PREFIX;
 
+        public KeyChain(IKeyValueStorage storage)
+        {
+            this._storage = storage;
+        }
+
         public async Task Init()
         {
             if (!this._initialized)
             {
-                //TODO Grab keychain from storage
                 var keyChain = await GetKeyChain();
                 if (keyChain != null)
                 {
@@ -60,13 +66,12 @@ namespace WalletConnectSharp.Crypto
 
         private async Task<Dictionary<string, string>> GetKeyChain()
         {
-            //TODO Grab from storage
-            return new Dictionary<string, string>();
+            return await _storage.GetItem<Dictionary<string, string>>(StorageKey);
         }
 
         private async Task SaveKeyChain()
         {
-            //TODO Save keychain to storage
+            await _storage.SetItem(StorageKey, this._keyChain);
         }
 
         public Task<bool> Has(string tag)
