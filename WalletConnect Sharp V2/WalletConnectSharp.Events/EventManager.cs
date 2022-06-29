@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace WalletConnectSharp.Events
@@ -11,36 +13,35 @@ namespace WalletConnectSharp.Events
     /// <typeparam name="TEventArgs">The type of the EventHandler's args this EventManager triggers. Must be a type of IEvent</typeparam>
     public class EventManager<T, TEventArgs> : IEventProvider<T> where TEventArgs : IEvent<T>, new()
     {
-        private static EventManager<T, TEventArgs> _instance;
+        private static Dictionary<Guid, EventManager<T, TEventArgs>> _instances =
+            new Dictionary<Guid, EventManager<T, TEventArgs>>();
 
         /// <summary>
         /// The current EventTriggers this EventManager has 
         /// </summary>
         public EventHandlerMap<TEventArgs> EventTriggers { get; private set; }
+        public Guid Context { get; private set; }
+
+        private EventManager(Guid context)
+        {
+            this.Context = context;
+            
+            EventTriggers = new EventHandlerMap<TEventArgs>(CallbackBeforeExecuted);
+            
+            EventFactory<T>.InstanceOf(context).Provider = this;
+        }
 
         /// <summary>
         /// Get the current instance of the EventManager for the given type T and TEventArgs.
         /// </summary>
-        public static EventManager<T, TEventArgs> Instance
+        public static EventManager<T, TEventArgs> InstanceOf(Guid context)
         {
-            get 
-            {
-                if (_instance == null)
-                {
-                    _instance = new EventManager<T, TEventArgs>();
-                }
-                
-                return _instance; 
-            }
+            if (!_instances.ContainsKey(context))
+                _instances.Add(context, new EventManager<T, TEventArgs>(context));
+
+            return _instances[context];
         }
 
-        private EventManager()
-        {
-            EventTriggers = new EventHandlerMap<TEventArgs>(CallbackBeforeExecuted);
-            
-            EventFactory<T>.Instance.Provider = this;
-        }
-        
         private void CallbackBeforeExecuted(object sender, TEventArgs e)
         {
         }

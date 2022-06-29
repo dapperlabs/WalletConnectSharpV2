@@ -18,6 +18,11 @@ namespace WalletConnectSharp.Network
         /// Whether this connection is active but still connecting
         /// </summary>
         bool Connecting { get; }
+        
+        /// <summary>
+        /// The current host Url this json rpc connection is using
+        /// </summary>
+        string Url { get; }
 
         /// <summary>
         /// Open this connection

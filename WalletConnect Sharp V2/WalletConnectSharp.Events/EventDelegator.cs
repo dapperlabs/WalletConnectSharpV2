@@ -16,6 +16,13 @@ namespace WalletConnectSharp.Events
     /// </summary>
     public class EventDelegator
     {
+        public Guid Context { get; private set; }
+
+        public EventDelegator()
+        {
+            Context = Guid.NewGuid();
+        }
+        
         /// <summary>
         /// Listen for a given event by it's eventId and event data type T
         /// </summary>
@@ -24,7 +31,7 @@ namespace WalletConnectSharp.Events
         /// <typeparam name="T">The type of event data the callback MUST be given</typeparam>
         public void ListenFor<T>(string eventId, EventHandler<GenericEvent<T>> callback)
         {  
-            EventManager<T, GenericEvent<T>>.Instance.EventTriggers[eventId] += callback;
+            EventManager<T, GenericEvent<T>>.InstanceOf(Context).EventTriggers[eventId] += callback;
         }
 
         /// <summary>
@@ -35,7 +42,7 @@ namespace WalletConnectSharp.Events
         /// <typeparam name="T">The type of event data the callback MUST be given</typeparam>
         public void RemoveListener<T>(string eventId, EventHandler<GenericEvent<T>> callback)
         {
-            EventManager<T, GenericEvent<T>>.Instance.EventTriggers[eventId] -= callback;
+            EventManager<T, GenericEvent<T>>.InstanceOf(Context).EventTriggers[eventId] -= callback;
         }
         
         /// <summary>
@@ -56,7 +63,7 @@ namespace WalletConnectSharp.Events
                 
             };
             
-            EventManager<T, GenericEvent<T>>.Instance.EventTriggers[eventId] += wrappedCallback;
+            EventManager<T, GenericEvent<T>>.InstanceOf(Context).EventTriggers[eventId] += wrappedCallback;
         }
         
         /// <summary>
@@ -73,11 +80,19 @@ namespace WalletConnectSharp.Events
             
             ListenFor<string>(eventId, delegate(object sender, GenericEvent<string> @event)
             {
-                //Attempt to Deserialize
-                var converted = JsonConvert.DeserializeObject<TR>(@event.Response);
-                
-                //When we convert, we trigger same eventId with required type TR
-                Trigger(eventId, converted);
+                try
+                {
+                    //Attempt to Deserialize
+                    var converted = JsonConvert.DeserializeObject<TR>(@event.Response);
+
+                    //When we convert, we trigger same eventId with required type TR
+                    Trigger(eventId, converted);
+                }
+                catch (Exception e)
+                {
+                    //Propagate any exceptions to the event callback
+                    Trigger(eventId, e);
+                }
             });
         }
         
@@ -92,22 +107,32 @@ namespace WalletConnectSharp.Events
         /// <returns>true if any event listeners were triggered, otherwise false</returns>
         public bool Trigger<T>(string eventId, T eventData)
         {
+            return TriggerType(eventId, eventData, typeof(T));
+        }
+
+        public bool TriggerType(string eventId, object eventData, Type typeToTrigger)
+        {
+            if (typeToTrigger == typeof(object))
+            {
+                throw new ArgumentException("Cannot trigger type of object, to broad.");
+            }
+            
             bool wasTriggered = false;
             //Find all EventFactories of type T
             var inheritedT = from assembly in AppDomain.CurrentDomain.GetAssemblies()
                 from type in assembly.GetTypes()
-                where type.IsSubclassOf(typeof(T))
+                where type.IsSubclassOf(typeToTrigger)
                 select type;
 
-            var allPossibleTypes = inheritedT.Concat(typeof(T).GetInterfaces()).Append(typeof(T)).Append(typeof(object));
+            var allPossibleTypes = inheritedT.Concat(typeToTrigger.GetInterfaces()).Append(typeToTrigger).Append(typeof(object));
             
             foreach (var type in allPossibleTypes)
             {
                 var genericFactoryType = typeof(EventFactory<>).MakeGenericType(type);
 
-                var instanceProperty = genericFactoryType.GetProperty("Instance");
+                var instanceProperty = genericFactoryType.GetMethod("InstanceOf");
 
-                var genericFactory = instanceProperty.GetValue(null, null);
+                var genericFactory = instanceProperty.Invoke(null, new object[] { Context });
 
                 var genericProviderProperty = genericFactoryType.GetProperty("Provider");
 

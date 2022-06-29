@@ -17,6 +17,14 @@ namespace WalletConnectSharp.Network
         private EventDelegator _delegator;
         private bool _hasRegisteredEventListeners;
 
+        public IJsonRpcConnection Connection
+        {
+            get
+            {
+                return _connection;
+            }
+        }
+
         public EventDelegator Events
         {
             get
@@ -96,7 +104,7 @@ namespace WalletConnectSharp.Network
             await _connection.Close();
         }
 
-        public async Task<TR> Request<T, TR>(IRequestArguments<T> requestArgs, object context)
+        public async Task<TR> Request<T, TR>(IRequestArguments<T> requestArgs, object context = null)
         {
             if (!_connection.Connected)
             {
@@ -107,6 +115,8 @@ namespace WalletConnectSharp.Network
             if (requestArgs is IJsonRpcRequest<T>)
             {
                 id = ((IJsonRpcRequest<T>)requestArgs).Id;
+                if (id == 0)
+                    id = null; // An id of 0 is null
             }
             var request = new JsonRpcRequest<T>(requestArgs.Method, requestArgs.Params, id);
 
@@ -126,6 +136,15 @@ namespace WalletConnectSharp.Network
                         requestTask.SetResult(result.Result);
                     }
                 });
+            
+            Events.ListenFor(request.Id.ToString(), delegate(object sender, GenericEvent<Exception> @event)
+            {
+                var exception = @event.Response;
+                if (exception != null)
+                {
+                    requestTask.SetException(exception);
+                }
+            });
             
 
             await _connection.SendRequest(request, context);
@@ -172,7 +191,7 @@ namespace WalletConnectSharp.Network
 
         private void OnConnectionDisconnected(object sender, GenericEvent<object> e)
         {
-            Events.Trigger("disconnect", e.Response as object);
+            Events.TriggerType("disconnect", e.Response, e.Response.GetType());
         }
 
         private void OnPayload(object sender, GenericEvent<string> e)
