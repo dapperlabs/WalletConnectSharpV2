@@ -14,7 +14,7 @@ namespace WalletConnectSharp.Network.Websocket
     /// <summary>
     /// A JSON RPC connection using Websocket.Client library + EventDelegator
     /// </summary>
-    public class WebsocketConnection : IJsonRpcConnection, IService
+    public class WebsocketConnection : IJsonRpcConnection, IModule
     {
         private EventDelegator _delegator;
         private WebsocketClient _socket;

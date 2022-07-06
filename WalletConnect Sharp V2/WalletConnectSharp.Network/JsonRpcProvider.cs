@@ -12,7 +12,7 @@ namespace WalletConnectSharp.Network
     /// <summary>
     /// A full implementation of the IJsonRpcProvider interface using the EventDelegator
     /// </summary>
-    public class JsonRpcProvider : IJsonRpcProvider, IService
+    public class JsonRpcProvider : IJsonRpcProvider, IModule
     {
         private IJsonRpcConnection _connection;
         private EventDelegator _delegator;

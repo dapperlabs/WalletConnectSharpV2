@@ -4,7 +4,7 @@ using WalletConnectSharp.Network;
 
 namespace WalletConnectSharp.Crypto.Interfaces
 {
-    public interface ICrypto : IService
+    public interface ICrypto : IModule
     {
         IKeyChain KeyChain { get; }
 

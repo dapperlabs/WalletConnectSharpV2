@@ -15,12 +15,12 @@ namespace WalletConnectSharp.Events
     /// event listeners are statically typed and will never receive an event that its callback cannot cast safely
     /// (this includes subclasses, interfaces and object).
     /// </summary>
-    public class EventDelegator : IService
+    public class EventDelegator : IModule
     {
         public string Name { get; private set; }
         public string Context { get; private set; }
 
-        public EventDelegator(IService parent)
+        public EventDelegator(IModule parent)
         {
             this.Name = parent + ":event-delegator";
             this.Context = parent.Context;

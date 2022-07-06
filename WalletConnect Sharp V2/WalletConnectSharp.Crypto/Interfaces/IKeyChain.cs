@@ -1,12 +1,15 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Storage.Interfaces;
 
 namespace WalletConnectSharp.Crypto.Interfaces
 {
-    public interface IKeyChain : IService
+    public interface IKeyChain : IModule
     {
         IReadOnlyDictionary<string, string> Keychain { get; }
+        
+        IKeyValueStorage Storage { get; }
 
         Task Init();
 

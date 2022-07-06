@@ -1,6 +1,6 @@
 namespace WalletConnectSharp.Common
 {
-    public interface IService
+    public interface IModule
     {
         string Name { get; }
         

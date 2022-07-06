@@ -11,7 +11,8 @@ namespace WalletConnectSharp.Crypto
     public class KeyChain : IKeyChain
     {
         private Dictionary<string, string> _keyChain = new Dictionary<string, string>();
-        private IKeyValueStorage _storage;
+        
+        public IKeyValueStorage Storage { get; private set; }
         
         public IReadOnlyDictionary<string, string> Keychain => new ReadOnlyDictionary<string, string>(_keyChain);
         
@@ -47,7 +48,7 @@ namespace WalletConnectSharp.Crypto
 
         public KeyChain(IKeyValueStorage storage)
         {
-            this._storage = storage;
+            this.Storage = storage;
         }
 
         public async Task Init()
@@ -66,12 +67,12 @@ namespace WalletConnectSharp.Crypto
 
         private async Task<Dictionary<string, string>> GetKeyChain()
         {
-            return await _storage.GetItem<Dictionary<string, string>>(StorageKey);
+            return await Storage.GetItem<Dictionary<string, string>>(StorageKey);
         }
 
         private async Task SaveKeyChain()
         {
-            await _storage.SetItem(StorageKey, this._keyChain);
+            await Storage.SetItem(StorageKey, this._keyChain);
         }
 
         public Task<bool> Has(string tag)

@@ -13,8 +13,15 @@ using WalletConnectSharp.Storage.Interfaces;
 
 namespace WalletConnectSharp.Crypto
 {
+    /// <summary>
+    /// The crypto module handles storing key pairs in storage. The storage module to use
+    /// must be given to the crypto module instance
+    /// </summary>
     public class Crypto : ICrypto
     {
+        /// <summary>
+        /// The name of the crypto module
+        /// </summary>
         public string Name
         {
             get
@@ -23,6 +30,9 @@ namespace WalletConnectSharp.Crypto
             }
         }
 
+        /// <summary>
+        /// The current context of this module instance
+        /// </summary>
         public string Context
         {
             get
@@ -32,20 +42,49 @@ namespace WalletConnectSharp.Crypto
             }
         }
         
+        /// <summary>
+        /// The current KeyChain this crypto module instance is using
+        /// </summary>
         public IKeyChain KeyChain { get; private set; }
         
+        /// <summary>
+        /// The current storage module this crypto module instance is using
+        /// </summary>
         public IKeyValueStorage Storage { get; private set; }
 
         private bool _initialized;
 
-        public Crypto(IKeyChain keyChain = null, IKeyValueStorage storage = null)
+        /// <summary>
+        /// Create a new instance of the crypto module, with a given storage module.
+        /// </summary>
+        /// <param name="storage">The storage module to use to load the keychain from</param>
+        public Crypto(IKeyValueStorage storage)
         {
             storage ??= new DictStorage();
-            keyChain ??= new KeyChain(storage);
 
-            this.KeyChain = keyChain;
+            this.KeyChain = new KeyChain(storage);
             this.Storage = storage;
         }
+        
+        /// <summary>
+        /// Create a new instance of the crypto module, with a given keychain.
+        /// </summary>
+        /// <param name="keyChain">The keychain to use for this crypto module</param>
+        public Crypto(IKeyChain keyChain)
+        {
+            keyChain ??= new KeyChain(new DictStorage());
+
+            this.KeyChain = keyChain;
+            this.Storage = keyChain.Storage;
+        }
+
+        /// <summary>
+        /// Create a new instance of the crypto module using an empty keychain stored in-memory using a Dictionary
+        /// </summary>
+        public Crypto() : this(new DictStorage())
+        {
+        }
+
         public async Task Init()
         {
             if (!this._initialized)
