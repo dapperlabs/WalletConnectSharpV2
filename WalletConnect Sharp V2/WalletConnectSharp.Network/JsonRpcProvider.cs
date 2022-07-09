@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
 using WalletConnectSharp.Network.Models;
@@ -11,11 +12,28 @@ namespace WalletConnectSharp.Network
     /// <summary>
     /// A full implementation of the IJsonRpcProvider interface using the EventDelegator
     /// </summary>
-    public class JsonRpcProvider : IJsonRpcProvider
+    public class JsonRpcProvider : IJsonRpcProvider, IService
     {
         private IJsonRpcConnection _connection;
         private EventDelegator _delegator;
         private bool _hasRegisteredEventListeners;
+
+        public string Name
+        {
+            get
+            {
+                return "json-rpc-provider";
+            }
+        }
+
+        public string Context
+        {
+            get
+            {
+                //TODO Get context from logger
+                return "walletconnectsharp";
+            }
+        }
 
         public EventDelegator Events
         {
@@ -27,7 +45,7 @@ namespace WalletConnectSharp.Network
 
         public JsonRpcProvider(IJsonRpcConnection connection)
         {
-            this._delegator = new EventDelegator();
+            this._delegator = new EventDelegator(this);
             this._connection = connection;
             if (this._connection.Connected)
             {
