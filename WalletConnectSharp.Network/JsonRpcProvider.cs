@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
 using WalletConnectSharp.Network.Models;
@@ -11,17 +12,26 @@ namespace WalletConnectSharp.Network
     /// <summary>
     /// A full implementation of the IJsonRpcProvider interface using the EventDelegator
     /// </summary>
-    public class JsonRpcProvider : IJsonRpcProvider
+    public class JsonRpcProvider : IJsonRpcProvider, IService
     {
         private IJsonRpcConnection _connection;
         private EventDelegator _delegator;
         private bool _hasRegisteredEventListeners;
 
-        public IJsonRpcConnection Connection
+        public string Name
         {
             get
             {
-                return _connection;
+                return "json-rpc-provider";
+            }
+        }
+
+        public string Context
+        {
+            get
+            {
+                //TODO Get context from logger
+                return "walletconnectsharp";
             }
         }
 
@@ -35,7 +45,7 @@ namespace WalletConnectSharp.Network
 
         public JsonRpcProvider(IJsonRpcConnection connection)
         {
-            this._delegator = new EventDelegator();
+            this._delegator = new EventDelegator(this);
             this._connection = connection;
             if (this._connection.Connected)
             {
@@ -104,7 +114,7 @@ namespace WalletConnectSharp.Network
             await _connection.Close();
         }
 
-        public async Task<TR> Request<T, TR>(IRequestArguments<T> requestArgs, object context = null)
+        public async Task<TR> Request<T, TR>(IRequestArguments<T> requestArgs, object context)
         {
             if (!_connection.Connected)
             {
@@ -115,8 +125,6 @@ namespace WalletConnectSharp.Network
             if (requestArgs is IJsonRpcRequest<T>)
             {
                 id = ((IJsonRpcRequest<T>)requestArgs).Id;
-                if (id == 0)
-                    id = null; // An id of 0 is null
             }
             var request = new JsonRpcRequest<T>(requestArgs.Method, requestArgs.Params, id);
 
@@ -136,15 +144,6 @@ namespace WalletConnectSharp.Network
                         requestTask.SetResult(result.Result);
                     }
                 });
-            
-            Events.ListenFor(request.Id.ToString(), delegate(object sender, GenericEvent<Exception> @event)
-            {
-                var exception = @event.Response;
-                if (exception != null)
-                {
-                    requestTask.SetException(exception);
-                }
-            });
             
 
             await _connection.SendRequest(request, context);
@@ -191,7 +190,7 @@ namespace WalletConnectSharp.Network
 
         private void OnConnectionDisconnected(object sender, GenericEvent<object> e)
         {
-            Events.TriggerType("disconnect", e.Response, e.Response.GetType());
+            Events.Trigger("disconnect", e.Response as object);
         }
 
         private void OnPayload(object sender, GenericEvent<string> e)

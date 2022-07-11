@@ -4,4 +4,13 @@
         <TargetFramework>netstandard2.1</TargetFramework>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\WalletConnectSharp.Common\WalletConnectSharp.Common.csproj" />
+      <ProjectReference Include="..\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="NSec.Cryptography" Version="22.4.0" />
+    </ItemGroup>
+
 </Project>

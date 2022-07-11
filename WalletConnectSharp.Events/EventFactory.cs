@@ -10,25 +10,23 @@ namespace WalletConnectSharp.Events
     /// <typeparam name="T"></typeparam>
     public class EventFactory<T>
     {
-        private static Dictionary<Guid, EventFactory<T>> _eventFactories = new Dictionary<Guid, EventFactory<T>>();
+        private static EventFactory<T> _instance;
 
         private IEventProvider<T> _eventProvider;
-        public Guid Context { get; private set; }
-
-        public EventFactory(Guid context)
-        {
-            this.Context = context;
-        }
 
         /// <summary>
         /// Get the EventFactory for the event data type T
         /// </summary>
-        public static EventFactory<T> InstanceOf(Guid context)
+        public static EventFactory<T> Instance
         {
-            if (!_eventFactories.ContainsKey(context))
-                _eventFactories.Add(context, new EventFactory<T>(context));
-
-            return _eventFactories[context];
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new EventFactory<T>();
+                }
+                return _instance;
+            }
         }
         
         /// <summary>

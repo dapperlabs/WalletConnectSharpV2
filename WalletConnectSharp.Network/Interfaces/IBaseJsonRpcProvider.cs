@@ -9,11 +9,6 @@ namespace WalletConnectSharp.Network
     public interface IBaseJsonRpcProvider : IEvents
     {
         /// <summary>
-        /// Gets the current IJsonRpcConnection this provider is using
-        /// </summary>
-        IJsonRpcConnection Connection { get; }
-        
-        /// <summary>
         /// Connect this provider with the given generic connection parameters. How the parameters are decoded is dependent
         /// on the implementation
         /// </summary>
