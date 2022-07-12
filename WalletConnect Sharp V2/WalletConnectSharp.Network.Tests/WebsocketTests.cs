@@ -8,7 +8,7 @@ using Xunit;
 namespace WalletConnectSharp.Network.Tests
 {
 
-     public class WebsocketTests
+    public class WebsocketTests
     {
         private static readonly TestWakuRequest TEST_WAKU_REQUEST =
             new TestWakuRequest("ca838d59a3a3fe3824dab9ca7882ac9a2227c5d0284c88655b261a2fe85db270");

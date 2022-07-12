@@ -18,8 +18,19 @@ namespace WalletConnectSharp.Network.Websocket
     {
         private EventDelegator _delegator;
         private WebsocketClient _socket;
-        private string _uri;
+        private string _url;
         private bool _registering;
+        public Guid _context;
+
+        public TimeSpan OpenTimeout = TimeSpan.FromSeconds(10);
+
+        public string Url
+        {
+            get
+            {
+                return _url;
+            }
+        }
 
         public string Name
         {
@@ -33,8 +44,7 @@ namespace WalletConnectSharp.Network.Websocket
         {
             get
             {
-                //TODO Replace with logger context
-                return "walletconnectsharp";
+                return _context.ToString();
             }
         }
 
@@ -62,12 +72,13 @@ namespace WalletConnectSharp.Network.Websocket
             }
         }
 
-        public WebsocketConnection(string uri)
+        public WebsocketConnection(string url)
         {
-            if (!Validation.IsWsUrl(uri))
-                throw new ArgumentException("Provided URL is not compatible with WebSocket connection: " + uri);
+            if (!Validation.IsWsUrl(url))
+                throw new ArgumentException("Provided URL is not compatible with WebSocket connection: " + url);
             
-            this._uri = uri;
+            _context = Guid.NewGuid();
+            this._url = url;
             _delegator = new EventDelegator(this);
         }
 
@@ -93,7 +104,7 @@ namespace WalletConnectSharp.Network.Websocket
 
         public async Task Open()
         {
-            await Register(_uri);
+            await Register(_url);
         }
 
         public async Task Open<T>(T options)
@@ -135,15 +146,20 @@ namespace WalletConnectSharp.Network.Websocket
                 return registeringTask.Task.Result;
             }
 
-            this._uri = url;
+            this._url = url;
             this._registering = true;
 
             try
             {
-                _socket = new WebsocketClient(new Uri(_uri));
-                await _socket.Start();
-                OnOpen(_socket);
-                return _socket;
+                _socket = new WebsocketClient(new Uri(_url));
+                var startTask = _socket.Start();
+                if (await Task.WhenAny(startTask, Task.Delay(OpenTimeout)) == startTask)
+                {
+                    OnOpen(_socket);
+                    return _socket;
+                }
+
+                throw new TimeoutException("Unavailable WS RPC url at " + _url);
             }
             catch (Exception e)
             {
@@ -174,7 +190,10 @@ namespace WalletConnectSharp.Network.Websocket
         
         private void OnClose(DisconnectionInfo obj)
         {
-            _socket.Dispose();
+            if (this._socket == null)
+                return;
+            
+            //_socket.Dispose();
             this._socket = null;
             this._registering = false;
             Events.Trigger("close", obj);
@@ -212,7 +231,7 @@ namespace WalletConnectSharp.Network.Websocket
         public async Task SendRequest<T>(IJsonRpcRequest<T> requestPayload, object context)
         {
             if (_socket == null)
-                _socket = await Register(_uri);
+                _socket = await Register(_url);
 
             try
             {
@@ -227,7 +246,7 @@ namespace WalletConnectSharp.Network.Websocket
         public async Task SendResult<T>(IJsonRpcResult<T> requestPayload, object context)
         {
             if (_socket == null)
-                _socket = await Register(_uri);
+                _socket = await Register(_url);
 
             try
             {
@@ -242,7 +261,7 @@ namespace WalletConnectSharp.Network.Websocket
         public async Task SendError(IJsonRpcError requestPayload, object context)
         {
             if (_socket == null)
-                _socket = await Register(_uri);
+                _socket = await Register(_url);
 
             try
             {
@@ -267,7 +286,7 @@ namespace WalletConnectSharp.Network.Websocket
         private void OnError<T>(IJsonRpcPayload ogPayload, Exception e)
         {
             var exception = e.Message.Contains(addressNotFoundError) || e.Message.Contains(connectionRefusedError)
-                ? new IOException("Unavailable WS RPC url at " + _uri) : e;
+                ? new IOException("Unavailable WS RPC url at " + _url) : e;
 
             var message = exception.Message;
             var payload = new JsonRpcResponse<T>(ogPayload.Id, new ErrorResponse()

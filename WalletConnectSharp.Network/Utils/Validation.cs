@@ -21,7 +21,7 @@ namespace WalletConnectSharp.Network
         /// <returns>A substring only containing the URL protocol</returns>
         public static string GetUrlProtocol(string url)
         {
-            return Regex.Match(url, "/^\\w+:/", RegexOptions.IgnoreCase).Value;
+            return Regex.Match(url, "^\\w+:/", RegexOptions.IgnoreCase).Value;
         }
 
         /// <summary>
