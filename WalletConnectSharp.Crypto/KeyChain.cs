@@ -12,8 +12,14 @@ namespace WalletConnectSharp.Crypto
     {
         private Dictionary<string, string> _keyChain = new Dictionary<string, string>();
         
+        /// <summary>
+        /// The backing IKeyValueStorage module being used to store the key/pairs
+        /// </summary>
         public IKeyValueStorage Storage { get; private set; }
         
+        /// <summary>
+        /// A read-only dictionary of all keypairs
+        /// </summary>
         public IReadOnlyDictionary<string, string> Keychain => new ReadOnlyDictionary<string, string>(_keyChain);
         
         public string Name
@@ -41,11 +47,17 @@ namespace WalletConnectSharp.Crypto
             }
         }
 
+        
         public string StorageKey => this._storagePrefix + this.Version + "//" + this.Name;
 
         private bool _initialized = false;
         private readonly string _storagePrefix = Constants.CORE_STORAGE_PREFIX;
 
+        /// <summary>
+        /// Create a new keychain using the given IKeyValueStorage module as the
+        /// primary storage of all keypairs
+        /// </summary>
+        /// <param name="storage">The storage module to use to save/load keypairs from</param>
         public KeyChain(IKeyValueStorage storage)
         {
             this.Storage = storage;

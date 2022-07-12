@@ -85,6 +85,12 @@ namespace WalletConnectSharp.Crypto
         {
         }
 
+        /// <summary>
+        /// Initialize the crypto module, this does nothing if the module has already
+        /// been initialized
+        ///
+        /// Initializing the module will invoke Init() on the backing KeyChain
+        /// </summary>
         public async Task Init()
         {
             if (!this._initialized)
@@ -94,12 +100,23 @@ namespace WalletConnectSharp.Crypto
             }
         }
 
+        /// <summary>
+        /// Check if a keypair with a given tag is stored in this crypto module. This should
+        /// check the backing keychain.
+        /// </summary>
+        /// <param name="tag">The tag of the keychain to look for</param>
+        /// <returns>True if the backing KeyChain has a keypair for the given tag</returns>
         public Task<bool> HasKeys(string tag)
         {
             this.IsInitialized();
             return this.KeyChain.Has(tag);
         }
 
+        /// <summary>
+        /// Generate a new keypair, storing the public/private key pair as the tag in the backing KeyChain. This will
+        /// save the public/private keypair in the backing KeyChain
+        /// </summary>
+        /// <returns>The public key of the generated keypair</returns>
         public Task<string> GenerateKeyPair()
         {
             this.IsInitialized();
@@ -117,6 +134,15 @@ namespace WalletConnectSharp.Crypto
             return this.SetPrivateKey(publicKey, privateKey);
         }
 
+        /// <summary>
+        /// Generate a shared Sym key given two public keys. One of the public keys (selfPublicKey) is the public key
+        /// we have generated a private key for in the backing KeyChain. The peer's public key (peerPublicKey) is used
+        /// to generate the Sym key
+        /// </summary>
+        /// <param name="selfPublicKey">The public key to use, this keypair must be stored in the backing KeyChain</param>
+        /// <param name="peerPublicKey">The Peer's public key. This public key does not exist in the backing KeyChain</param>
+        /// <param name="overrideTopic"></param>
+        /// <returns>The generated Sym key</returns>
         public async Task<string> GenerateSharedKey(string selfPublicKey, string peerPublicKey, string overrideTopic = null)
         {
             var privateKey = await GetPrivateKey(selfPublicKey);
@@ -124,9 +150,16 @@ namespace WalletConnectSharp.Crypto
             var symKey = DeriveSymmetricKey(sharedKey);
 
             var symKeyRaw = symKey.Export(KeyBlobFormat.NSecPrivateKey);
-            return await SetSymKey(symKeyRaw.ToHex());
+            return await SetSymKey(symKeyRaw.ToHex(), overrideTopic);
         }
 
+        /// <summary>
+        /// Store the Sym key in the backing KeyChain, optionally for a given topic. If no topic is given,
+        /// then the KeyChain tag for the Sym key will be the hash of the key.
+        /// </summary>
+        /// <param name="symKey">The Sym key to store</param>
+        /// <param name="overrideTopic">An optional topic to use as the KeyChain tag</param>
+        /// <returns>The tag used to store the Sym key in the KeyChain</returns>
         public async Task<string> SetSymKey(string symKey, string overrideTopic = null)
         {
             string topic = overrideTopic ?? HashKey(symKey);
@@ -135,18 +168,34 @@ namespace WalletConnectSharp.Crypto
             return topic;
         }
 
+        /// <summary>
+        /// Delete a keypair from the backing KeyChain
+        /// </summary>
+        /// <param name="publicKey">The public key of the keypair to delete</param>
+        /// <returns>An async task</returns>
         public Task DeleteKeyPair(string publicKey)
         {
             this.IsInitialized();
             return this.KeyChain.Delete(publicKey);
         }
 
+        /// <summary>
+        /// Delete a Sym key with the given topic/tag from the backing KeyChain.
+        /// </summary>
+        /// <param name="topic">The topic/tag of the Sym key to delete</param>
+        /// <returns>An async task</returns>
         public Task DeleteSymKey(string topic)
         {
             this.IsInitialized();
             return this.KeyChain.Delete(topic);
         }
 
+        /// <summary>
+        /// Encrypt a message with the given topic's Sym key. 
+        /// </summary>
+        /// <param name="topic">The topic of the Sym key to use to encrypt the message</param>
+        /// <param name="message">The message to encrypt</param>
+        /// <returns>The encrypted message from an async task</returns>
         public async Task<string> Encrypt(string topic, string message)
         {
             this.IsInitialized();
@@ -155,6 +204,12 @@ namespace WalletConnectSharp.Crypto
             return EncryptAndSerialize(symKey, message);
         }
 
+        /// <summary>
+        /// Decrypt an encrypted message using the given topic's Sym key.
+        /// </summary>
+        /// <param name="topic">The topic of the Sym key to use to decrypt the message</param>
+        /// <param name="encoded">The message to decrypt</param>
+        /// <returns>The decrypted message from an async task</returns>
         public async Task<string> Decrypt(string topic, string encoded)
         {
             this.IsInitialized();
@@ -163,6 +218,13 @@ namespace WalletConnectSharp.Crypto
             return DeserializeAndDecrypt(symKey, encoded);
         }
 
+        /// <summary>
+        /// Encode a JsonRpcPayload message by encrypting the contents using the given topic's Sym key. If the topic
+        /// has no Sym key, then the contents are not encrypted and instead are simply converted to Json -> Hex
+        /// </summary>
+        /// <param name="topic">The topic of the Sym key to use to encrypt the IJsonRpcPayload</param>
+        /// <param name="payload">The payload to encode and encrypt</param>
+        /// <returns>The encoded and encrypted IJsonRpcPayload from an async task</returns>
         public async Task<string> Encode(string topic, IJsonRpcPayload payload)
         {
             this.IsInitialized();
@@ -172,6 +234,14 @@ namespace WalletConnectSharp.Crypto
             return result;
         }
 
+        /// <summary>
+        /// Decode an encoded/encrypted message to a IJsonRpcPayload using the given topic's Sym key. If the topic
+        /// has no Sym key, then the contents are not decrypted and instead are simply converted Hex -> Json
+        /// </summary>
+        /// <param name="topic">The topic of the Sym key to use</param>
+        /// <param name="encoded">The encoded/encrypted message to decrypt</param>
+        /// <typeparam name="T">The type of the IJsonRpcPayload to convert the encoded Json to</typeparam>
+        /// <returns>The decoded, decrypted and deserialized object of type T from an async task</returns>
         public async Task<T> Decode<T>(string topic, string encoded) where T : IJsonRpcPayload
         {
             this.IsInitialized();
