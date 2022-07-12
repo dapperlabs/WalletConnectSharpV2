@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common;
 using WalletConnectSharp.Events.Model;
 
 namespace WalletConnectSharp.Events
@@ -14,13 +15,15 @@ namespace WalletConnectSharp.Events
     /// event listeners are statically typed and will never receive an event that its callback cannot cast safely
     /// (this includes subclasses, interfaces and object).
     /// </summary>
-    public class EventDelegator
+    public class EventDelegator : IService
     {
-        public Guid Context { get; private set; }
+        public string Name { get; private set; }
+        public string Context { get; private set; }
 
-        public EventDelegator()
+        public EventDelegator(IService parent)
         {
-            Context = Guid.NewGuid();
+            this.Name = parent + ":event-delegator";
+            this.Context = parent.Context;
         }
         
         /// <summary>

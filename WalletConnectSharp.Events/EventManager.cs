@@ -13,16 +13,16 @@ namespace WalletConnectSharp.Events
     /// <typeparam name="TEventArgs">The type of the EventHandler's args this EventManager triggers. Must be a type of IEvent</typeparam>
     public class EventManager<T, TEventArgs> : IEventProvider<T> where TEventArgs : IEvent<T>, new()
     {
-        private static Dictionary<Guid, EventManager<T, TEventArgs>> _instances =
-            new Dictionary<Guid, EventManager<T, TEventArgs>>();
+        private static Dictionary<string, EventManager<T, TEventArgs>> _instances =
+            new Dictionary<string, EventManager<T, TEventArgs>>();
 
         /// <summary>
         /// The current EventTriggers this EventManager has 
         /// </summary>
         public EventHandlerMap<TEventArgs> EventTriggers { get; private set; }
-        public Guid Context { get; private set; }
+        public string Context { get; private set; }
 
-        private EventManager(Guid context)
+        private EventManager(string context)
         {
             this.Context = context;
             
@@ -34,7 +34,7 @@ namespace WalletConnectSharp.Events
         /// <summary>
         /// Get the current instance of the EventManager for the given type T and TEventArgs.
         /// </summary>
-        public static EventManager<T, TEventArgs> InstanceOf(Guid context)
+        public static EventManager<T, TEventArgs> InstanceOf(string context)
         {
             if (!_instances.ContainsKey(context))
                 _instances.Add(context, new EventManager<T, TEventArgs>(context));

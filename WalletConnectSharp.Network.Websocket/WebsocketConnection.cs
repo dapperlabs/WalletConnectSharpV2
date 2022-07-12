@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.WebSockets;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
 using WalletConnectSharp.Network.Models;
@@ -13,12 +14,13 @@ namespace WalletConnectSharp.Network.Websocket
     /// <summary>
     /// A JSON RPC connection using Websocket.Client library + EventDelegator
     /// </summary>
-    public class WebsocketConnection : IJsonRpcConnection
+    public class WebsocketConnection : IJsonRpcConnection, IService
     {
         private EventDelegator _delegator;
         private WebsocketClient _socket;
         private string _url;
         private bool _registering;
+        public Guid _context;
 
         public TimeSpan OpenTimeout = TimeSpan.FromSeconds(10);
 
@@ -27,6 +29,22 @@ namespace WalletConnectSharp.Network.Websocket
             get
             {
                 return _url;
+            }
+        }
+
+        public string Name
+        {
+            get
+            {
+                return "websocket-connection";
+            }
+        }
+
+        public string Context
+        {
+            get
+            {
+                return _context.ToString();
             }
         }
 
@@ -59,8 +77,9 @@ namespace WalletConnectSharp.Network.Websocket
             if (!Validation.IsWsUrl(url))
                 throw new ArgumentException("Provided URL is not compatible with WebSocket connection: " + url);
             
+            _context = Guid.NewGuid();
             this._url = url;
-            _delegator = new EventDelegator();
+            _delegator = new EventDelegator(this);
         }
 
         public void On<T>(string eventId, EventHandler<GenericEvent<T>> callback)
