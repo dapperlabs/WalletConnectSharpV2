@@ -142,7 +142,7 @@ namespace WalletConnectSharp.Network
 
             TaskCompletionSource<TR> requestTask = new TaskCompletionSource<TR>(TaskCreationOptions.None);
             
-            Events.ListenForAndDeserialize(request.Id.ToString(),
+            Events.ListenForAndDeserialize<JsonRpcResponse<TR>>(request.Id.ToString(),
                 delegate(object sender, GenericEvent<JsonRpcResponse<TR>> @event)
                 {
                     var result = @event.Response;
