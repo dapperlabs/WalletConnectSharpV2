@@ -47,7 +47,9 @@ namespace WalletConnectSharp.Crypto
             }
         }
 
-        
+        /// <summary>
+        /// The storage key that is used to store the keychain in the given IKeyValueStorage
+        /// </summary>
         public string StorageKey => this._storagePrefix + this.Version + "//" + this.Name;
 
         private bool _initialized = false;
@@ -63,6 +65,9 @@ namespace WalletConnectSharp.Crypto
             this.Storage = storage;
         }
 
+        /// <summary>
+        /// Initialize the KeyChain, this will load the keychain into memory from the storage 
+        /// </summary>
         public async Task Init()
         {
             if (!this._initialized)
@@ -77,22 +82,24 @@ namespace WalletConnectSharp.Crypto
             }
         }
 
-        private async Task<Dictionary<string, string>> GetKeyChain()
-        {
-            return await Storage.GetItem<Dictionary<string, string>>(StorageKey);
-        }
-
-        private async Task SaveKeyChain()
-        {
-            await Storage.SetItem(StorageKey, this._keyChain);
-        }
-
+        /// <summary>
+        /// Check if a given tag exists in this KeyChain. This task is asynchronous but completes instantly.
+        /// Async support is built in for future implementations which may use a cloud keystore
+        /// </summary>
+        /// <param name="tag">The tag to check for existence</param>
+        /// <returns>True if the tag exists, false otherwise</returns>
         public Task<bool> Has(string tag)
         {
             this.IsInitialized();
             return Task.FromResult(this._keyChain.ContainsKey(tag));
         }
 
+        /// <summary>
+        /// Set a key with the given tag. The private key can only be retrieved using the tag
+        /// given
+        /// </summary>
+        /// <param name="tag">The tag to save with the key given</param>
+        /// <param name="key">The key to set with the given tag</param>
         public async Task Set(string tag, string key)
         {
             this.IsInitialized();
@@ -108,6 +115,13 @@ namespace WalletConnectSharp.Crypto
             await SaveKeyChain();
         }
 
+        /// <summary>
+        /// Get a saved key with the given tag. If no tag exists, then a WalletConnectException will
+        /// be thrown.
+        /// </summary>
+        /// <param name="tag">The tag of the key to retrieve</param>
+        /// <returns>The key with the given tag</returns>
+        /// <exception cref="WalletConnectException">Thrown if the given tag does not match any key</exception>
         public async Task<string> Get(string tag)
         {
             this.IsInitialized();
@@ -120,6 +134,12 @@ namespace WalletConnectSharp.Crypto
             return this._keyChain[tag];
         }
 
+        /// <summary>
+        /// Delete a key with the given tag. If no tag exists, then a WalletConnectException will
+        /// be thrown.
+        /// </summary>
+        /// <param name="tag">The tag of the key to delete</param>
+        /// <exception cref="WalletConnectException">Thrown if the given tag does not match any key</exception>
         public async Task Delete(string tag)
         {
             this.IsInitialized();
@@ -140,6 +160,16 @@ namespace WalletConnectSharp.Crypto
             {
                 throw WalletConnectException.FromType(ErrorType.NOT_INITIALIZED, new {Name});
             }
+        }
+        
+        private async Task<Dictionary<string, string>> GetKeyChain()
+        {
+            return await Storage.GetItem<Dictionary<string, string>>(StorageKey);
+        }
+
+        private async Task SaveKeyChain()
+        {
+            await Storage.SetItem(StorageKey, this._keyChain);
         }
     }
 }
