@@ -45,5 +45,11 @@ namespace WalletConnectSharp.Storage.Interfaces
         /// <param name="key">The key to delete the stored value pairing.</param>
         /// <returns></returns>
         Task RemoveItem(string key);
+        /// <summary>
+        /// The HasItem function checks to see if a key exists.
+        /// </summary>
+        /// <param name="key">The key to check</param>
+        /// <returns>True if it exists, otherwise false</returns>
+        Task<bool> HasItem(string key);
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -37,6 +38,11 @@ namespace WalletConnectSharp.Storage
         {
             _openWith.Remove(key);
             return Task.CompletedTask;
+        }
+
+        public Task<bool> HasItem(string key)
+        {
+            return Task.FromResult(_openWith.ContainsKey(key));
         }
     }
 }

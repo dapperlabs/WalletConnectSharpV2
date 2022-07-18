@@ -34,6 +34,14 @@ namespace WalletConnectSharp.Storage.Test
             Assert.Equal(new int[]{5}, await testDictStorage.GetEntriesOfType<int>());
 
         }
+
+        [Fact]
+        async public void HasItemTest()
+        {
+            var testDictStorage = new DictStorage();
+            await testDictStorage.SetItem("checkedkey", "testingvalue");
+            Assert.True(await testDictStorage.HasItem("checkedkey"));
+        }
     }
     
 }
