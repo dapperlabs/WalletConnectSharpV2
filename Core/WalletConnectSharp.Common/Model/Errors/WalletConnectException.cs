@@ -162,6 +162,9 @@ namespace WalletConnectSharp.Common
                 case ErrorType.DISAPPROVED_CHAINS:
                     errorMessage = "User disapproved requested chains";
                     break;
+                case ErrorType.DISAPPROVED_JSONRPC:
+                    errorMessage = "JSON-RPC disapproved request";
+                    break;
                 case ErrorType.DISAPPROVED_NOTIFICATION:
                     errorMessage = "User disapproved requested notification types";
                     break;

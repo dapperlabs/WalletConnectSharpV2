@@ -18,8 +18,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WalletConnectSharp.Network.Websocket\WalletConnectSharp.Network.Websocket.csproj" />
-      <ProjectReference Include="..\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
+      <ProjectReference Include="..\..\Core\WalletConnectSharp.Common\WalletConnectSharp.Common.csproj" />
+      <ProjectReference Include="..\..\Core\WalletConnectSharp.Events\WalletConnectSharp.Events.csproj" />
     </ItemGroup>
 
 </Project>

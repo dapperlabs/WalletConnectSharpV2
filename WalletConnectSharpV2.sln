@@ -1,20 +1,22 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Network", "WalletConnectSharp.Network\WalletConnectSharp.Network.csproj", "{0797C687-3123-4502-A441-F48A31E6EF46}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Network", "Core\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj", "{0797C687-3123-4502-A441-F48A31E6EF46}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Storage", "WalletConnectSharp.Storage\WalletConnectSharp.Storage.csproj", "{46EC1C68-C0C1-4515-B841-F117651C866E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Storage", "Core\WalletConnectSharp.Storage\WalletConnectSharp.Storage.csproj", "{46EC1C68-C0C1-4515-B841-F117651C866E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Crypto", "WalletConnectSharp.Crypto\WalletConnectSharp.Crypto.csproj", "{CE7D22CE-523B-47D1-8093-BB9643C4F6FB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Crypto", "Core\WalletConnectSharp.Crypto\WalletConnectSharp.Crypto.csproj", "{CE7D22CE-523B-47D1-8093-BB9643C4F6FB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Events", "WalletConnectSharp.Events\WalletConnectSharp.Events.csproj", "{FD172F4E-A33D-47F9-AD46-AD346F5B767B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Events", "Core\WalletConnectSharp.Events\WalletConnectSharp.Events.csproj", "{FD172F4E-A33D-47F9-AD46-AD346F5B767B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Network.Websocket", "WalletConnectSharp.Network.Websocket\WalletConnectSharp.Network.Websocket.csproj", "{53A4B228-6AFA-4BAE-B3CE-4C4711A8878B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Network.Websocket", "Core\WalletConnectSharp.Network.Websocket\WalletConnectSharp.Network.Websocket.csproj", "{53A4B228-6AFA-4BAE-B3CE-4C4711A8878B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Network.Tests", "WalletConnectSharp.Network.Tests\WalletConnectSharp.Network.Tests.csproj", "{F237BAA4-EE57-4E34-91CA-37380FBA4D2F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Network.Tests", "Tests\WalletConnectSharp.Network.Tests\WalletConnectSharp.Network.Tests.csproj", "{F237BAA4-EE57-4E34-91CA-37380FBA4D2F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Common", "WalletConnectSharp.Common\WalletConnectSharp.Common.csproj", "{90B59A93-273C-49A3-8A26-37E487780B1A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Common", "Core\WalletConnectSharp.Common\WalletConnectSharp.Common.csproj", "{90B59A93-273C-49A3-8A26-37E487780B1A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Events.Tests", "WalletConnectSharp.Events.Tests\WalletConnectSharp.Events.Tests.csproj", "{AFAA1188-AF03-4A79-A3A3-E25D08ED5757}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Events.Tests", "Tests\WalletConnectSharp.Events.Tests\WalletConnectSharp.Events.Tests.csproj", "{AFAA1188-AF03-4A79-A3A3-E25D08ED5757}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Storage.Test", "Tests\WalletConnectSharp.Storage.Test\WalletConnectSharp.Storage.Test.csproj", "{5EDF7334-9F47-4E0E-9964-6EA7934F0292}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -48,5 +50,9 @@ Global
 		{AFAA1188-AF03-4A79-A3A3-E25D08ED5757}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFAA1188-AF03-4A79-A3A3-E25D08ED5757}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFAA1188-AF03-4A79-A3A3-E25D08ED5757}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5EDF7334-9F47-4E0E-9964-6EA7934F0292}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EDF7334-9F47-4E0E-9964-6EA7934F0292}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EDF7334-9F47-4E0E-9964-6EA7934F0292}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EDF7334-9F47-4E0E-9964-6EA7934F0292}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

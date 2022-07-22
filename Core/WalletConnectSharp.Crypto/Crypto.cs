@@ -60,7 +60,7 @@ namespace WalletConnectSharp.Crypto
         /// <param name="storage">The storage module to use to load the keychain from</param>
         public Crypto(IKeyValueStorage storage)
         {
-            storage ??= new DictStorage();
+            storage ??= new FileSystemStorage();
 
             this.KeyChain = new KeyChain(storage);
             this.Storage = storage;
@@ -72,7 +72,7 @@ namespace WalletConnectSharp.Crypto
         /// <param name="keyChain">The keychain to use for this crypto module</param>
         public Crypto(IKeyChain keyChain)
         {
-            keyChain ??= new KeyChain(new DictStorage());
+            keyChain ??= new KeyChain(new FileSystemStorage());
 
             this.KeyChain = keyChain;
             this.Storage = keyChain.Storage;
@@ -81,7 +81,7 @@ namespace WalletConnectSharp.Crypto
         /// <summary>
         /// Create a new instance of the crypto module using an empty keychain stored in-memory using a Dictionary
         /// </summary>
-        public Crypto() : this(new DictStorage())
+        public Crypto() : this(new FileSystemStorage())
         {
         }
 

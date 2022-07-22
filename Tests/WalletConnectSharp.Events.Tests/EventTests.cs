@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using WalletConnectSharp.Common;
 using WalletConnectSharp.Common.Model;
 using WalletConnectSharp.Events.Model;
 using Xunit;
