@@ -4,12 +4,12 @@ using Xunit;
 
 namespace WalletConnectSharp.Storage.Test
 {
-    public class UnitTest1
+    public class FileSystemStorageTest
     {
         [Fact]
-        async public void GetSetRemoveTest()
+        public async void GetSetRemoveTest()
         {
-            var testDictStorage = new DictStorage();
+            var testDictStorage = new FileSystemStorage();
             await testDictStorage.SetItem("somekey", "somevalue");
             Assert.Equal("somevalue",await testDictStorage.GetItem<string>("somekey"));
             await testDictStorage.RemoveItem("somekey");
@@ -17,17 +17,17 @@ namespace WalletConnectSharp.Storage.Test
         }
 
         [Fact]
-        async public void GetKeysTest()
+        public async void GetKeysTest()
         {
-            var testDictStorage = new DictStorage();
+            var testDictStorage = new FileSystemStorage();
             await testDictStorage.SetItem("addkey", "testingvalue");
             Assert.Equal(new string[]{"addkey"}, await testDictStorage.GetKeys()); 
         }
 
         [Fact]
-        async public void GetEntriesTests()
+        public async void GetEntriesTests()
         {
-            var testDictStorage = new DictStorage();
+            var testDictStorage = new FileSystemStorage();
             await testDictStorage.SetItem("addkey", "testingvalue");
             Assert.Equal(new object[]{"testingvalue"}, await testDictStorage.GetEntries());
             await testDictStorage.SetItem("newkey", 5);
@@ -36,12 +36,11 @@ namespace WalletConnectSharp.Storage.Test
         }
 
         [Fact]
-        async public void HasItemTest()
+        public async void HasItemTest()
         {
-            var testDictStorage = new DictStorage();
+            var testDictStorage = new FileSystemStorage();
             await testDictStorage.SetItem("checkedkey", "testingvalue");
             Assert.True(await testDictStorage.HasItem("checkedkey"));
         }
     }
-    
 }
