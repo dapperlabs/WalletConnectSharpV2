@@ -125,13 +125,14 @@ namespace WalletConnectSharp.Crypto
             {
                 ExportPolicy = KeyExportPolicies.AllowPlaintextArchiving
             };
-            
-            var keypair = Key.Create(SignatureAlgorithm.Ed25519, options);
 
-            var publicKey = keypair.PublicKey.Export(KeyBlobFormat.NSecPublicKey).ToHex();
-            var privateKey = keypair.Export(KeyBlobFormat.NSecPrivateKey).ToHex();
-            
-            return this.SetPrivateKey(publicKey, privateKey);
+            using (var keypair = Key.Create(KeyAgreementAlgorithm.X25519, options))
+            {
+                var publicKey = keypair.PublicKey.Export(KeyBlobFormat.NSecPublicKey).ToHex();
+                var privateKey = keypair.Export(KeyBlobFormat.NSecPrivateKey).ToHex();
+
+                return this.SetPrivateKey(publicKey, privateKey);
+            }
         }
 
         /// <summary>
@@ -146,11 +147,15 @@ namespace WalletConnectSharp.Crypto
         public async Task<string> GenerateSharedKey(string selfPublicKey, string peerPublicKey, string overrideTopic = null)
         {
             var privateKey = await GetPrivateKey(selfPublicKey);
-            var sharedKey = DeriveSharedKey(privateKey, peerPublicKey);
-            var symKey = DeriveSymmetricKey(sharedKey);
+            using (var sharedKey = DeriveSharedKey(privateKey, peerPublicKey))
+            {
+                using (var symKey = DeriveSymmetricKey(sharedKey))
+                {
+                    var symKeyRaw = symKey.Export(KeyBlobFormat.NSecSymmetricKey);
 
-            var symKeyRaw = symKey.Export(KeyBlobFormat.NSecPrivateKey);
-            return await SetSymKey(symKeyRaw.ToHex(), overrideTopic);
+                    return await SetSymKey(symKeyRaw.ToHex(), overrideTopic);
+                }
+            }
         }
 
         /// <summary>
@@ -289,28 +294,30 @@ namespace WalletConnectSharp.Crypto
 
         private SharedSecret DeriveSharedKey(string privateKeyA, string publicKeyB)
         {
-            using (var keyA = Key.Import(SignatureAlgorithm.Ed25519, privateKeyA.HexToByteArray(),
+            using (var keyA = Key.Import(KeyAgreementAlgorithm.X25519, privateKeyA.HexToByteArray(),
                        KeyBlobFormat.NSecPrivateKey))
             {
-                var keyB = PublicKey.Import(SignatureAlgorithm.Ed25519, publicKeyB.HexToByteArray(),
+                var keyB = PublicKey.Import(KeyAgreementAlgorithm.X25519, publicKeyB.HexToByteArray(),
                     KeyBlobFormat.NSecPublicKey);
                 
                 var options = new SharedSecretCreationParameters
                 {
                     ExportPolicy = KeyExportPolicies.AllowPlaintextArchiving
                 };
-                
-                using (var sharedKey = KeyAgreementAlgorithm.X25519.Agree(keyA, keyB, options))
-                {
-                    return sharedKey;
-                }
+
+                return KeyAgreementAlgorithm.X25519.Agree(keyA, keyB, options);
             }
         }
 
         private Key DeriveSymmetricKey(SharedSecret secretKey)
         {
+            var options = new KeyCreationParameters()
+            {
+                ExportPolicy = KeyExportPolicies.AllowPlaintextArchiving
+            };
+            
             return KeyDerivationAlgorithm.HkdfSha512.DeriveKey(secretKey, Array.Empty<byte>(), Array.Empty<byte>(),
-                AeadAlgorithm.ChaCha20Poly1305);
+                AeadAlgorithm.ChaCha20Poly1305, options);
         }
 
         private string EncryptAndSerialize(string symKey, string message, string iv = null)
@@ -325,13 +332,16 @@ namespace WalletConnectSharp.Crypto
             {
                 rawIv = iv.HexToByteArray();
             }
-            
-            Key key = Key.Import(AeadAlgorithm.ChaCha20Poly1305, symKey.HexToByteArray(), KeyBlobFormat.NSecPrivateKey);
 
-            var encrypted = AeadAlgorithm.ChaCha20Poly1305.Encrypt(key, iv.HexToByteArray(), Array.Empty<byte>(),
-                Encoding.UTF8.GetBytes(message));
+            using (var key = Key.Import(AeadAlgorithm.ChaCha20Poly1305, symKey.HexToByteArray(),
+                       KeyBlobFormat.NSecSymmetricKey))
+            {
+                var encrypted = AeadAlgorithm.ChaCha20Poly1305.Encrypt(key, new ReadOnlySpan<byte>(rawIv),
+                    Array.Empty<byte>(),
+                    Encoding.UTF8.GetBytes(message));
 
-            return rawIv.Concat(encrypted).ToArray().ToHex();
+                return rawIv.Concat(encrypted).ToArray().ToHex();
+            }
         }
 
         private string DeserializeAndDecrypt(string symKey, string encoded)
@@ -339,12 +349,14 @@ namespace WalletConnectSharp.Crypto
             var rawIv = encoded.HexToByteArray().Take(12).ToArray();
             var @sealed = encoded.HexToByteArray().Skip(12).ToArray();
 
-            Key key = Key.Import(AeadAlgorithm.ChaCha20Poly1305, symKey.HexToByteArray(), KeyBlobFormat.NSecPrivateKey);
+            using (var key = Key.Import(AeadAlgorithm.ChaCha20Poly1305, symKey.HexToByteArray(),
+                       KeyBlobFormat.NSecSymmetricKey))
+            {
+                var rawDecrypted = AeadAlgorithm.ChaCha20Poly1305.Decrypt(key, rawIv, Array.Empty<byte>(), @sealed);
 
-            var rawDecrypted = AeadAlgorithm.ChaCha20Poly1305.Decrypt(key, rawIv, Array.Empty<byte>(), @sealed);
-
-            if (rawDecrypted != null) return Encoding.UTF8.GetString(rawDecrypted);
-            return null;
+                if (rawDecrypted != null) return Encoding.UTF8.GetString(rawDecrypted);
+                return null;
+            }
         }
     }
 }

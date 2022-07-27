@@ -164,6 +164,11 @@ namespace WalletConnectSharp.Crypto
         
         private async Task<Dictionary<string, string>> GetKeyChain()
         {
+            var hasKey = await Storage.HasItem(StorageKey);
+            if (!hasKey)
+            {
+                await Storage.SetItem(StorageKey, new Dictionary<string, string>());
+            }
             return await Storage.GetItem<Dictionary<string, string>>(StorageKey);
         }
 
