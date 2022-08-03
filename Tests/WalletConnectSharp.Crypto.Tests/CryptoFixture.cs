@@ -1,26 +1,35 @@
 using System;
+using System.Threading.Tasks;
+using WalletConnectSharp.Storage;
 
 namespace WalletConnectSharp.Crypto.Tests
 {
     public class CryptoFixture : IDisposable
     {
-        public Crypto Crypto { get; private set; }
+        public Crypto PeerA { get; private set; }
+        
+        public Crypto PeerB { get; private set; }
         
         public CryptoFixture()
         {
-            Crypto = new Crypto();
+            var storageA = new FileSystemStorage(".tests.peer.a");
+            var storageB = new FileSystemStorage(".tests.peer.b");
+            
+            PeerA = new Crypto(storageA);
+            PeerB = new Crypto(storageB);
 
             Init();
         }
 
         private async void Init()
         {
-            await Crypto.Init();
+            await Task.WhenAll(PeerA.Init(), PeerB.Init());
         }
         
         public void Dispose()
         {
-            Crypto.Storage.Clear();
+            PeerA.Storage.Clear();
+            PeerB.Storage.Clear();
         }
     }
 }

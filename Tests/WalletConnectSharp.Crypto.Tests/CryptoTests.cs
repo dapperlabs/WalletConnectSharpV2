@@ -7,11 +7,19 @@ namespace WalletConnectSharp.Crypto.Tests
     {
         private CryptoFixture _cryptoFixture;
 
-        public Crypto Crypto
+        public Crypto PeerA
         {
             get
             {
-                return _cryptoFixture.Crypto;
+                return _cryptoFixture.PeerA;
+            }
+        }
+        
+        public Crypto PeerB
+        {
+            get
+            {
+                return _cryptoFixture.PeerB;
             }
         }
 
@@ -25,14 +33,24 @@ namespace WalletConnectSharp.Crypto.Tests
         {
             var message = "This is a test message";
 
-            var key = await Crypto.GenerateKeyPair();
-            var otherKey = await Crypto.GenerateKeyPair();
-            var symKey = await Crypto.GenerateSharedKey(key, otherKey);
+            var keyA = await PeerA.GenerateKeyPair();
+            var keyB = await PeerB.GenerateKeyPair();
 
-            var encrypted = await Crypto.Encrypt(symKey, message);
+            Assert.NotEqual(keyA, keyB);
+            Assert.False(await PeerA.HasKeys(keyB));
+            Assert.False(await PeerB.HasKeys(keyA));
+            
+            var symKeyA = await PeerA.GenerateSharedKey(keyA, keyB);
+            var symKeyB = await PeerB.GenerateSharedKey(keyB, keyA);
+            
+            Assert.Equal(symKeyA, symKeyB);
 
-            var decrypted = await Crypto.Decrypt(symKey, encrypted);
+            var encrypted = await PeerA.Encrypt(symKeyA, message);
+            var decrypted = await PeerB.Decrypt(symKeyB, encrypted);
 
+            Assert.NotEqual(encrypted, message);
+            Assert.NotEqual(encrypted, decrypted);
+            
             Assert.Equal(message, decrypted);
         }
 
@@ -41,13 +59,21 @@ namespace WalletConnectSharp.Crypto.Tests
         {
             var message = new TestWakuRequest("test");
             
-            var key = await Crypto.GenerateKeyPair();
-            var otherKey = await Crypto.GenerateKeyPair();
-            var symKey = await Crypto.GenerateSharedKey(key, otherKey);
-
-            var encoded = await Crypto.Encode(symKey, message);
-            var decoded = await Crypto.Decode<TestWakuRequest>(symKey, encoded);
+            var keyA = await PeerA.GenerateKeyPair();
+            var keyB = await PeerB.GenerateKeyPair();
             
+            Assert.NotEqual(keyA, keyB);
+            Assert.False(await PeerA.HasKeys(keyB));
+            Assert.False(await PeerB.HasKeys(keyA));
+            
+            var symKeyA = await PeerA.GenerateSharedKey(keyA, keyB);
+            var symKeyB = await PeerB.GenerateSharedKey(keyB, keyA);
+            
+            Assert.Equal(symKeyA, symKeyB);
+
+            var encoded = await PeerA.Encode(symKeyA, message);
+            var decoded = await PeerB.Decode<TestWakuRequest>(symKeyB, encoded);
+
             Assert.Equal(message.Params.Topic, decoded.Params.Topic);
         }
     }
