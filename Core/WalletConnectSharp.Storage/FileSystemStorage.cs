@@ -73,7 +73,7 @@ namespace WalletConnectSharp.Storage
         private async Task Save()
         {
             var path = Path.GetDirectoryName(FilePath);
-            if (path != null && !Directory.Exists(path))
+            if (!string.IsNullOrWhiteSpace(path) && !Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
             }
