@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Storage.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Crypto.Tests", "Tests\WalletConnectSharp.Crypto.Tests\WalletConnectSharp.Crypto.Tests.csproj", "{23897558-4177-425D-B2FA-75AB0B6FEDAE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletConnectSharp.Sign", "WalletConnectSharp.Sign\WalletConnectSharp.Sign.csproj", "{7D5F3009-902E-4AF4-9EA2-992C8D41B6BF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +62,9 @@ Global
 		{23897558-4177-425D-B2FA-75AB0B6FEDAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{23897558-4177-425D-B2FA-75AB0B6FEDAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{23897558-4177-425D-B2FA-75AB0B6FEDAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D5F3009-902E-4AF4-9EA2-992C8D41B6BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D5F3009-902E-4AF4-9EA2-992C8D41B6BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D5F3009-902E-4AF4-9EA2-992C8D41B6BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D5F3009-902E-4AF4-9EA2-992C8D41B6BF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Core\WalletConnectSharp.Common\WalletConnectSharp.Common.csproj" />
+      <ProjectReference Include="..\Core\WalletConnectSharp.Crypto\WalletConnectSharp.Crypto.csproj" />
+      <ProjectReference Include="..\Core\WalletConnectSharp.Events\WalletConnectSharp.Events.csproj" />
+      <ProjectReference Include="..\Core\WalletConnectSharp.Network.Websocket\WalletConnectSharp.Network.Websocket.csproj" />
+      <ProjectReference Include="..\Core\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
+      <ProjectReference Include="..\Core\WalletConnectSharp.Storage\WalletConnectSharp.Storage.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Websocket.Client" Version="4.4.43" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Network\Requests" />
+      <Folder Include="Network\Responses" />
+    </ItemGroup>
+
+</Project>
