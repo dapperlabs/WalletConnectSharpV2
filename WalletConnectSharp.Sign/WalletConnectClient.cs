@@ -1,6 +1,6 @@
 namespace WalletConnectSharp.Sign
 {
-    public class Client
+    public class WalletConnectClient
     {
         
     }

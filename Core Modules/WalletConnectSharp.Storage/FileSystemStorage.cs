@@ -9,11 +9,10 @@ using WalletConnectSharp.Storage.Interfaces;
 
 namespace WalletConnectSharp.Storage
 {
-    public class FileSystemStorage : IKeyValueStorage
+    public class FileSystemStorage : InMemoryStorage
     {
         public string FilePath { get; private set; }
-        private Dictionary<string, object> _openWith = new Dictionary<string, object>();
-
+        
         public FileSystemStorage(string filePath = null)
         {
             if (filePath == null)
@@ -28,45 +27,20 @@ namespace WalletConnectSharp.Storage
             Load();
         }
         
-        public Task<string[]> GetKeys()
+        public override async Task SetItem<T>(string key, T value)
         {
-            return Task.FromResult(_openWith.Keys.ToArray());
-        }
-
-        public async Task<T[]> GetEntriesOfType<T>()
-        {
-            return (await GetEntries()).OfType<T>().ToArray();
-        }
-
-        public Task<object[]> GetEntries()
-        {
-            return Task.FromResult(_openWith.Values.ToArray());
-        }
-
-        public Task<T> GetItem<T>(string key)
-        {
-            return Task.FromResult(_openWith[key] is T ? (T)_openWith[key] : default);
-        }
-        
-        public async Task SetItem<T>(string key, T value)
-        {
-            _openWith[key] = value;
+            await base.SetItem<T>(key, value);
             await Save();
         }
-        public async Task RemoveItem(string key)
+        public override async Task RemoveItem(string key)
         {
-            _openWith.Remove(key);
+            await base.RemoveItem(key);
             await Save();
         }
 
-        public Task<bool> HasItem(string key)
+        public override async Task Clear()
         {
-            return Task.FromResult(_openWith.ContainsKey(key));
-        }
-
-        public async Task Clear()
-        {
-            _openWith.Clear();
+            await base.Clear();
             await Save();
         }
 
@@ -78,7 +52,7 @@ namespace WalletConnectSharp.Storage
                 Directory.CreateDirectory(path);
             }
             
-            var json = JsonConvert.SerializeObject(_openWith, new JsonSerializerSettings()
+            var json = JsonConvert.SerializeObject(_entries, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.All
             });
@@ -92,7 +66,7 @@ namespace WalletConnectSharp.Storage
                 return;
             
             var json = await File.ReadAllTextAsync(FilePath, Encoding.UTF8);
-            _openWith = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, new JsonSerializerSettings()
+            _entries = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.Auto
             });

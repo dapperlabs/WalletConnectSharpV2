@@ -18,7 +18,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Core\WalletConnectSharp.Crypto\WalletConnectSharp.Crypto.csproj" />
+      <ProjectReference Include="..\..\Core Modules\WalletConnectSharp.Crypto\WalletConnectSharp.Crypto.csproj" />
+      <ProjectReference Include="..\..\Core Modules\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
     </ItemGroup>
 
 </Project>
