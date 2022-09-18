@@ -150,9 +150,9 @@ namespace WalletConnectSharp.Core.Controllers
                 OnDisconnect();
             });
             
-            On<object>(SubscriberEvents.Created, AsyncPersist);
+            this.On<object>(SubscriberEvents.Created, AsyncPersist);
 
-            On<object>(SubscriberEvents.Deleted, AsyncPersist);
+            this.On<object>(SubscriberEvents.Deleted, AsyncPersist);
         }
 
         protected virtual async void AsyncPersist(object sender, GenericEvent<object> @event)
@@ -483,26 +483,6 @@ namespace WalletConnectSharp.Core.Controllers
                     await Task.Delay(20);
                 }
             });
-        }
-        
-        public void On<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.ListenFor(eventId, callback);
-        }
-
-        public void Once<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.ListenForOnce(eventId, callback);
-        }
-
-        public void Off<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.RemoveListener(eventId, callback);
-        }
-
-        public void RemoveListener<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.RemoveListener(eventId, callback);
         }
     }
 }

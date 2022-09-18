@@ -48,26 +48,6 @@ namespace WalletConnectSharp.Core.Controllers
 
             Interval = opts.Interval;
         }
-        
-        public void On<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.ListenFor(eventId, callback);
-        }
-
-        public void Once<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.ListenForOnce(eventId, callback);
-        }
-
-        public void Off<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.RemoveListener(eventId, callback);
-        }
-
-        public void RemoveListener<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.RemoveListener(eventId, callback);
-        }
 
         public Task Init()
         {

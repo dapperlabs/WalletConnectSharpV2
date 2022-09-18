@@ -82,26 +82,6 @@ namespace WalletConnectSharp.Network.Websocket
             _delegator = new EventDelegator(this);
         }
 
-        public void On<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            _delegator.ListenFor(eventId, callback);
-        }
-
-        public void Once<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            _delegator.ListenForOnce(eventId, callback);
-        }
-
-        public void Off<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            _delegator.RemoveListener(eventId, callback);
-        }
-
-        public void RemoveListener<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            _delegator.RemoveListener(eventId, callback);
-        }
-
         public async Task Open()
         {
             await Register(_url);

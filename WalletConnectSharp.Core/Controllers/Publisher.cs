@@ -83,27 +83,7 @@ namespace WalletConnectSharp.Core.Controllers
 
             return this.Relayer.Provider.Request<RelayPublishParams, object>(request, this);
         }
-        
-        public void On<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.ListenFor(eventId, callback);
-        }
 
-        public void Once<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.ListenForOnce(eventId, callback);
-        }
-
-        public void Off<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.RemoveListener(eventId, callback);
-        }
-
-        public void RemoveListener<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.RemoveListener(eventId, callback);
-        }
-        
         public async Task Publish(string topic, string message, PublishOptions opts = null)
         {
             if (opts == null)

@@ -62,26 +62,6 @@ namespace WalletConnectSharp.Core
             Events = new EventDelegator(this);
         }
 
-        public void On<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.ListenFor(eventId, callback);
-        }
-
-        public void Once<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.ListenForOnce(eventId, callback);
-        }
-
-        public void Off<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.RemoveListener(eventId, callback);
-        }
-
-        public void RemoveListener<T>(string eventId, EventHandler<GenericEvent<T>> callback)
-        {
-            Events.RemoveListener(eventId, callback);
-        }
-        
         public async Task Start()
         {
             if (Initialized) return;
