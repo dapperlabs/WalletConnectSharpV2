@@ -68,5 +68,13 @@ namespace WalletConnectSharp.Events
         {
             return mapping.ContainsKey(eventId);
         }
+
+        public void Clear(string eventId)
+        {
+            if (mapping.ContainsKey(eventId))
+            {
+                mapping.Remove(eventId);
+            }
+        }
     }
 }

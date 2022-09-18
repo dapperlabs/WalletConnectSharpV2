@@ -25,6 +25,20 @@ namespace WalletConnectSharp.Events
             this.Name = parent + ":event-delegator";
             this.Context = parent.Context;
         }
+
+        /// <summary>
+        /// Listen for a given event by it's eventId and trigger the parameter-less callback. This
+        /// callback will be triggered for all event data types emitted with the eventId given. 
+        /// </summary>
+        /// <param name="eventId">The eventId of the event to listen to</param>
+        /// <param name="callback">The callback to invoke when the event is triggered</param>
+        public void ListenFor(string eventId, Action callback)
+        {
+            ListenFor<object>(eventId, (sender, @event) =>
+            {
+                callback();
+            });
+        }
         
         /// <summary>
         /// Listen for a given event by it's eventId and event data type T

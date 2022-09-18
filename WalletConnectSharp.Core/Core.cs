@@ -13,6 +13,8 @@ namespace WalletConnectSharp.Core
 {
     public class Core : ICore
     {
+        public static readonly string STORAGE_PREFIX = ICore.Protocol + "@" + ICore.Version + ":core:";
+        
         public string Name
         {
             get

@@ -40,7 +40,7 @@ namespace WalletConnectSharp.Network
         /// <param name="request">The json rpc request to send</param>
         /// <param name="context">The current context</param>
         /// <typeparam name="T">The type of the parameter field in the json rpc request</typeparam>
-        /// <typeparam name="TR">The type of the response to decode</typeparam>
+        /// <typeparam name="TR">The type of the parameter field in the json rpc response</typeparam>
         /// <returns>The decoded response for the request</returns>
         Task<TR> Request<T, TR>(IRequestArguments<T> request, object context = null);
     }

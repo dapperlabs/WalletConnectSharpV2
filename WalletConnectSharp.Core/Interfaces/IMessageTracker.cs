@@ -16,8 +16,6 @@ namespace WalletConnectSharp.Core.Interfaces
 
         public Task<string> Set(string topic, string message);
 
-        public Task<T> Get<T>(string topic);
-
         public Task<MessageRecord> Get(string topic);
 
         public bool Has(string topic, string message);

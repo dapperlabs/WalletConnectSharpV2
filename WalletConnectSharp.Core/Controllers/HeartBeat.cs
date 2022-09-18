@@ -17,9 +17,22 @@ namespace WalletConnectSharp.Core.Controllers
         public CancellationToken HeartBeatCancellationToken { get; private set; }
         
         public int Interval { get; }
-        
-        public string Name { get; }
-        public string Context { get; }
+
+        public string Name
+        {
+            get
+            {
+                return "heartbeat";
+            }
+        }
+
+        public string Context
+        {
+            get
+            {
+                return "heartbeat";
+            }
+        }
 
         public HeartBeat(HeartBeatOptions opts = null)
         {
