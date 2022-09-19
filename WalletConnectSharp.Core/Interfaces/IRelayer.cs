@@ -8,6 +8,9 @@ namespace WalletConnectSharp.Core.Interfaces
 {
     public interface IRelayer : IEvents, IModule
     {
+        public const string Protocol = "wc";
+        public const int Version = 2;
+        
         public ICore Core { get; }
         
         //TODO Add logger

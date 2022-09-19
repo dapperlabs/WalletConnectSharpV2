@@ -6,6 +6,14 @@ namespace WalletConnectSharp.Events
 {
     public static class IEventsExtensions
     {
+        public static void On(this IEvents eventEmitter, string eventId, Action callback)
+        {
+            eventEmitter.On<object>(eventId, (sender, @event) =>
+            {
+                callback();
+            });
+        }
+        
         public static void On<T>(this IEvents eventEmitter, string eventId, EventHandler<GenericEvent<T>> callback)
         {
             eventEmitter.Events.ListenFor(eventId, callback);

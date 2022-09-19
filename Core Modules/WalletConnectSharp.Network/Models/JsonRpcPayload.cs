@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -23,6 +24,21 @@ namespace WalletConnectSharp.Network.Models
         [JsonExtensionData]
         private IDictionary<string, JToken> _extraStuff;
 
+        /// <summary>
+        /// Get the method for this payload, if this payload is a request.
+        /// If this payload is not a request, then an error is thrown
+        /// </summary>
+        public string Method
+        {
+            get
+            {
+                if (!IsRequest)
+                    throw new ArgumentException("The given payload is not a request, and thus has no Method");
+
+                return _extraStuff["method"].ToObject<string>();
+            }
+        }
+        
         /// <summary>
         /// Whether this payload represents a request
         /// </summary>

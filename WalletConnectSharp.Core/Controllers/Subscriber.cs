@@ -140,12 +140,12 @@ namespace WalletConnectSharp.Core.Controllers
                 CheckPending();
             });
             
-            _relayer.Provider.On<object>(RelayerProviderEvents.Connect, (sender, @event) =>
+            _relayer.Provider.On<object>(ProviderEvents.Connect, (sender, @event) =>
             {
                 OnConnect();
             });
             
-            _relayer.Provider.On<object>(RelayerProviderEvents.Disconnect, (sender, @event) =>
+            _relayer.Provider.On<object>(ProviderEvents.Disconnect, (sender, @event) =>
             {
                 OnDisconnect();
             });

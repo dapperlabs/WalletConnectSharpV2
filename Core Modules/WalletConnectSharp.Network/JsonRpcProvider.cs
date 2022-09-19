@@ -92,7 +92,7 @@ namespace WalletConnectSharp.Network
         {
             this._connection = connection;
             RegisterEventListeners();
-            Events.Trigger("connect", connection);
+            Events.Trigger(ProviderEvents.Connect, connection);
         }
 
         public async Task Connect<T>(T @params)
@@ -186,12 +186,12 @@ namespace WalletConnectSharp.Network
 
         private void OnConnectionError(object sender, GenericEvent<Exception> e)
         {
-            Events.Trigger("error", e.Response);
+            Events.Trigger(ProviderEvents.Error, e.Response);
         }
 
         private void OnConnectionDisconnected(object sender, GenericEvent<object> e)
         {
-            Events.TriggerType("disconnect", e.Response, e.Response.GetType());
+            Events.TriggerType(ProviderEvents.Disconnect, e.Response, e.Response.GetType());
         }
 
         private void OnPayload(object sender, GenericEvent<string> e)
@@ -205,11 +205,11 @@ namespace WalletConnectSharp.Network
                 throw new IOException("Invalid payload: " + json);
             }
             
-            Events.Trigger("payload", payload);
+            Events.Trigger(ProviderEvents.Payload, payload);
             
             if (payload.IsRequest)
             {
-                Events.Trigger("message", json);
+                Events.Trigger(ProviderEvents.RawRequestMessage, json);
             }
             else
             {

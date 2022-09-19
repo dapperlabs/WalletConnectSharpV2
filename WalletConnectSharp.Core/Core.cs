@@ -1,11 +1,11 @@
-using System;
 using System.Threading.Tasks;
+using WalletConnectSharp.Core.Controllers;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models;
+using WalletConnectSharp.Core.Models.Relay;
 using WalletConnectSharp.Crypto;
 using WalletConnectSharp.Crypto.Interfaces;
 using WalletConnectSharp.Events;
-using WalletConnectSharp.Events.Model;
 using WalletConnectSharp.Storage;
 using WalletConnectSharp.Storage.Interfaces;
 
@@ -58,8 +58,16 @@ namespace WalletConnectSharp.Core
             RelayUrl = options.RelayUrl;
             Crypto = new Crypto.Crypto(options.KeyChain);
             Storage = options.Storage;
-            
+            HeartBeat = new HeartBeat();
             Events = new EventDelegator(this);
+            
+            Relayer = new Relayer(new RelayerOptions()
+            {
+                Core = this,
+                LoggerContext = Context,
+                ProjectId = ProjectId,
+                RelayUrl = options.RelayUrl
+            });
         }
 
         public async Task Start()

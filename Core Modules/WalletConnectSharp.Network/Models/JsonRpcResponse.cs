@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace WalletConnectSharp.Network.Models
 {
     /// <summary>
@@ -6,8 +8,10 @@ namespace WalletConnectSharp.Network.Models
     /// <typeparam name="T">The type of the result property for this JSON RPC response</typeparam>
     public class JsonRpcResponse<T> : IJsonRpcResult<T>
     {
+        [JsonProperty("id")]
         public long Id { get; set; }
 
+        [JsonProperty("jsonrpc")]
         public string JsonRPC
         {
             get
@@ -16,7 +20,10 @@ namespace WalletConnectSharp.Network.Models
             }
         }
 
+        [JsonProperty("error", NullValueHandling = NullValueHandling.Ignore)]
         public ErrorResponse Error { get; set; }
+        
+        [JsonProperty("result", NullValueHandling = NullValueHandling.Ignore)]
         public T Result { get; set; }
 
         public JsonRpcResponse()
