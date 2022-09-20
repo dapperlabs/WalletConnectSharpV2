@@ -11,6 +11,7 @@
       <ProjectReference Include="..\Core\WalletConnectSharp.Network.Websocket\WalletConnectSharp.Network.Websocket.csproj" />
       <ProjectReference Include="..\Core\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
       <ProjectReference Include="..\Core\WalletConnectSharp.Storage\WalletConnectSharp.Storage.csproj" />
+      <ProjectReference Include="..\WalletConnectSharp.Core\WalletConnectSharp.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -64,8 +64,8 @@ namespace WalletConnectSharp.Core.Controllers
             this.queue.Remove(hash);
         }
 
-        protected Task RpcPublish(string topic, string message, int ttl, ProtocolOptions relay, bool prompt = false,
-            int? tag = null)
+        protected Task RpcPublish(string topic, string message, long ttl, ProtocolOptions relay, bool prompt = false,
+            long? tag = null)
         {
             var api = RelayProtocols.GetRelayProtocol(relay.Protocol);
             var request = new RequestArguments<RelayPublishParams>()
