@@ -42,13 +42,13 @@ namespace WalletConnectSharp.Events.Tests
 
             string eventId = Guid.NewGuid().ToString();
             
-            events.ListenFor<string>(eventId, delegate(object? sender, GenericEvent<string> @event)
+            events.ListenFor<string>(eventId, delegate(object sender, GenericEvent<string> @event)
             {
                 eventCallbackTask.SetResult(@event.Response);
             });
             var eventData = Guid.NewGuid().ToString();
 
-            Task.Run(delegate
+            await Task.Run(delegate
             {
                 Thread.Sleep(500);
                 events.Trigger(eventId, eventData);
@@ -113,19 +113,19 @@ namespace WalletConnectSharp.Events.Tests
             TestGenericData<TestEventData> result3 = null;
             ITest result4 = null;
 
-            events.ListenFor<TestEventData>("abc", delegate(object? sender, GenericEvent<TestEventData> @event)
+            events.ListenFor<TestEventData>("abc", delegate(object sender, GenericEvent<TestEventData> @event)
             {
                 result1 = @event.Response;
             });
 
-            events.ListenFor<ITest>("abc", delegate(object? sender, GenericEvent<ITest> @event)
+            events.ListenFor<ITest>("abc", delegate(object sender, GenericEvent<ITest> @event)
             {
                 result2 = @event.Response;
             });
 
 
             events.ListenFor<TestGenericData<TestEventData>>("xyz",
-                delegate(object? sender, GenericEvent<TestGenericData<TestEventData>> @event)
+                delegate(object sender, GenericEvent<TestGenericData<TestEventData>> @event)
                 {
                     result3 = @event.Response;
                 });
@@ -162,7 +162,7 @@ namespace WalletConnectSharp.Events.Tests
 
             TestEventData result1 = null;
             
-            events.ListenForAndDeserialize<TestEventData>("abc", delegate(object? sender, GenericEvent<TestEventData> @event)
+            events.ListenForAndDeserialize<TestEventData>("abc", delegate(object sender, GenericEvent<TestEventData> @event)
             {
                 result1 = @event.Response;
             });

@@ -404,7 +404,7 @@ namespace WalletConnectSharp.Core.Controllers
                 var subscriptions = GetSubscription(id);
                 result = subscriptions.Topic == topic;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // ignored
             }
