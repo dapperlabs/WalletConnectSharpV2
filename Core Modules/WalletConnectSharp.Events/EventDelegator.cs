@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
@@ -129,39 +130,48 @@ namespace WalletConnectSharp.Events
 
         public bool TriggerType(string eventId, object eventData, Type typeToTrigger)
         {
+            IEnumerable<Type> allPossibleTypes;
+            bool wasTriggered = false;
+            
             if (typeToTrigger == typeof(object))
             {
-                throw new ArgumentException("Cannot trigger type of object, to broad.");
+                // If the type of object was given, then only
+                // trigger event listeners listening to the object type explicitly
+                allPossibleTypes = new[] { typeof(object) };
             }
-            
-            bool wasTriggered = false;
-            //Find all EventFactories of type T
-            var inheritedT = from assembly in AppDomain.CurrentDomain.GetAssemblies()
-                from type in assembly.GetTypes()
-                where type.IsSubclassOf(typeToTrigger)
-                select type;
+            else
+            {
+                //Find all EventFactories that inherit from type T
+                var inheritedT = from assembly in AppDomain.CurrentDomain.GetAssemblies()
+                    from type in assembly.GetTypes()
+                    where type.IsSubclassOf(typeToTrigger)
+                    select type;
 
-            var allPossibleTypes = inheritedT.Concat(typeToTrigger.GetInterfaces()).Append(typeToTrigger).Append(typeof(object));
-            
+                // Create list of types that include types inherit from type T, type T, and type object
+                allPossibleTypes = inheritedT.Concat(typeToTrigger.GetInterfaces()).Append(typeToTrigger)
+                    .Append(typeof(object));
+            }
+
             foreach (var type in allPossibleTypes)
             {
                 var genericFactoryType = typeof(EventFactory<>).MakeGenericType(type);
 
                 var instanceProperty = genericFactoryType.GetMethod("InstanceOf");
-
+                if (instanceProperty == null) continue;
+                
                 var genericFactory = instanceProperty.Invoke(null, new object[] { Context });
 
                 var genericProviderProperty = genericFactoryType.GetProperty("Provider");
-
+                if (genericProviderProperty == null) continue;
+                
                 var genericProvider = genericProviderProperty.GetValue(genericFactory);
-
-                if (genericProvider != null)
-                {
-                    MethodInfo propagateEventMethod = genericProvider.GetType().GetMethod("PropagateEvent");
-
-                    propagateEventMethod.Invoke(genericProvider, new object[] { eventId, eventData });
-                    wasTriggered = true;
-                }
+                if (genericProvider == null) continue;
+                
+                MethodInfo propagateEventMethod = genericProvider.GetType().GetMethod("PropagateEvent");
+                if (propagateEventMethod == null) continue;
+                
+                propagateEventMethod.Invoke(genericProvider, new object[] { eventId, eventData });
+                wasTriggered = true;
             }
 
             return wasTriggered;
