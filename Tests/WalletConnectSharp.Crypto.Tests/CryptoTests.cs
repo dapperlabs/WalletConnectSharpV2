@@ -76,5 +76,7 @@ namespace WalletConnectSharp.Crypto.Tests
 
             Assert.Equal(message.Params.Topic, decoded.Params.Topic);
         }
+        
+        
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using WalletConnectSharp.Events;
 using WalletConnectSharp.Network.Tests.Models;
 using WalletConnectSharp.Network.Websocket;
 using Websocket.Client;
