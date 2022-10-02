@@ -8,7 +8,7 @@ namespace WalletConnectSharp.Sign.Controllers
 {
     public class Session : Store<string, SessionStruct>, ISession
     {
-        public Session(ICore core) : base(core, "session", WalletConnectClient.StoragePrefix)
+        public Session(ICore core) : base(core, "session", WalletConnectSignClient.StoragePrefix)
         {
         }
     }

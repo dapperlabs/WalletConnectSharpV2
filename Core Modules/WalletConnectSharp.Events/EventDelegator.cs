@@ -113,22 +113,40 @@ namespace WalletConnectSharp.Events
                 }
             });
         }
-        
+
         /// <summary>
-        /// Trigger an event by its eventId, providing a typed event data. This will invoke the provided callbacks
+        /// Trigger an event by its eventId, providing a typed event data. This will invoke the registered callbacks
         /// of the event listeners listening to this eventId and looking for the given event data type T. This will
         /// also trigger event listeners looking for any sub-type of T, such as subclasses or interfaces.
+        /// 
+        /// This will NOT trigger event listeners looking for any parent type of T. For example, triggering with a
+        /// type of IMyType will NOT trigger event listeners looking for more concrete types implementing IMyType.
         /// </summary>
         /// <param name="eventId">The eventId of the event to trigger</param>
         /// <param name="eventData">The event data to trigger the event with</param>
+        /// <param name="raiseOnException">Whether to raise an exception if a listener throws an exception. If false, then all exceptions are silenced</param>
         /// <typeparam name="T">The type of the event data</typeparam>
         /// <returns>true if any event listeners were triggered, otherwise false</returns>
-        public bool Trigger<T>(string eventId, T eventData)
+        public bool Trigger<T>(string eventId, T eventData, bool raiseOnException = true)
         {
-            return TriggerType(eventId, eventData, typeof(T));
+            return TriggerType(eventId, eventData, typeof(T), raiseOnException);
         }
 
-        public bool TriggerType(string eventId, object eventData, Type typeToTrigger)
+        /// <summary>
+        /// Trigger an event by its eventId, providing a event data and the type of the eventData.
+        /// This will invoke the registered callbacks of the event listeners listening to this eventId and looking for
+        /// the given event data type "typeToTrigger". This will also trigger event listeners looking for any
+        /// sub-type of the given type "typeToTrigger", such as subclasses or interfaces.
+        /// 
+        /// This will NOT trigger event listeners looking for any parent type. For example, triggering with a
+        /// type of IMyType will NOT trigger event listeners looking for more concrete types implementing IMyType.
+        /// </summary>
+        /// <param name="eventId">The eventId of the event to trigger</param>
+        /// <param name="eventData">The event data to trigger the event with</param>
+        /// <param name="typeToTrigger">The type of the given event data and the event data type that will be triggered</param>
+        /// <param name="raiseOnException">Whether to raise an exception if a listener throws an exception. If false, then all exceptions are silenced</param>
+        /// <returns>true if any event listeners were triggered, otherwise false</returns>
+        public bool TriggerType(string eventId, object eventData, Type typeToTrigger, bool raiseOnException = true)
         {
             IEnumerable<Type> allPossibleTypes;
             bool wasTriggered = false;
@@ -169,9 +187,17 @@ namespace WalletConnectSharp.Events
                 
                 MethodInfo propagateEventMethod = genericProvider.GetType().GetMethod("PropagateEvent");
                 if (propagateEventMethod == null) continue;
-                
-                propagateEventMethod.Invoke(genericProvider, new object[] { eventId, eventData });
-                wasTriggered = true;
+
+                try
+                {
+                    propagateEventMethod.Invoke(genericProvider, new object[] { eventId, eventData });
+                    wasTriggered = true;
+                }
+                catch (Exception)
+                {
+                    if (raiseOnException)
+                        throw;
+                }
             }
 
             return wasTriggered;

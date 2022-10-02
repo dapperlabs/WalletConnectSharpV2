@@ -8,7 +8,7 @@ namespace WalletConnectSharp.Sign.Controllers
 {
     public class Pairing : Store<string, PairingStruct>, IPairing
     {
-        public Pairing(ICore core) : base(core, "pairing", WalletConnectClient.StoragePrefix)
+        public Pairing(ICore core) : base(core, "pairing", WalletConnectSignClient.StoragePrefix)
         {
         }
     }

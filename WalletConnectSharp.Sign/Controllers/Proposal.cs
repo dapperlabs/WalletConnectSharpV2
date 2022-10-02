@@ -8,7 +8,7 @@ namespace WalletConnectSharp.Sign.Controllers
 {
     public class Proposal : Store<long,ProposalStruct>, IProposal
     {
-        public Proposal(ICore core) : base(core, "proposal", WalletConnectClient.StoragePrefix)
+        public Proposal(ICore core) : base(core, "proposal", WalletConnectSignClient.StoragePrefix)
         {
         }
     }

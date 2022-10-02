@@ -25,7 +25,7 @@ namespace WalletConnectSharp.Sign.Models
         public ProtocolOptions[] Relays { get; set; }
         
         [JsonProperty("proposer")]
-        public Proposer Proposer { get; set; }
+        public Participant Proposer { get; set; }
         
         [JsonProperty("requiredNamespaces")]
         public RequiredNamespaces RequiredNamespaces { get; set; }

@@ -28,10 +28,10 @@ namespace WalletConnectSharp.Sign.Models
         public RequiredNamespaces RequiredNamespaces { get; set; }
         
         [JsonProperty("self")]
-        public Proposer Self { get; set; }
+        public Participant Self { get; set; }
         
         [JsonProperty("peer")]
-        public Proposer Peer { get; set; }
+        public Participant Peer { get; set; }
 
         [JsonIgnore]
         public string Key
