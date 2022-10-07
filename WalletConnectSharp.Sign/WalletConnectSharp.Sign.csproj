@@ -12,9 +12,4 @@
       <PackageReference Include="Websocket.Client" Version="4.4.43" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Network\Requests" />
-      <Folder Include="Network\Responses" />
-    </ItemGroup>
-
 </Project>
