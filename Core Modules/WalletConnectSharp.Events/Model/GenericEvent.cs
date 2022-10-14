@@ -9,16 +9,16 @@ namespace WalletConnectSharp.Events.Model
     /// <typeparam name="T">The event data type to store</typeparam>
     public class GenericEvent<T> : IEvent<T>
     {
-        public T Response { get; private set; }
+        public T EventData { get; private set; }
 
         public void SetData(T response)
         {
-            if (Response != null)
+            if (EventData != null)
             {
                 throw new ArgumentException("Response was already set");
             }
             
-            Response = response;
+            EventData = response;
         }
     }
 }

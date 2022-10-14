@@ -7,6 +7,7 @@ using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models.History;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
+using WalletConnectSharp.Network;
 using WalletConnectSharp.Network.Models;
 
 namespace WalletConnectSharp.Sign.Controllers
@@ -111,7 +112,7 @@ namespace WalletConnectSharp.Sign.Controllers
             }
         }
 
-        public void Set(string topic, JsonRpcRequest<T> request, string chainId)
+        public void Set(string topic, IJsonRpcRequest<T> request, string chainId)
         {
             IsInitialized();
             if (_records.ContainsKey(request.Id)) return;
@@ -139,7 +140,7 @@ namespace WalletConnectSharp.Sign.Controllers
             return Task.FromResult<JsonRpcRecord<T, TR>>(record);
         }
 
-        public Task Resolve(JsonRpcResponse<TR> response)
+        public Task Resolve(IJsonRpcResult<TR> response)
         {
             IsInitialized();
             if (!_records.ContainsKey(response.Id)) return Task.CompletedTask;

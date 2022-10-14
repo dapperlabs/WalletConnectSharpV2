@@ -101,7 +101,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             Provider.On<string>(ProviderEvents.RawRequestMessage, (sender, @event) =>
             {
-                OnProviderPayload(@event.Response);
+                OnProviderPayload(@event.EventData);
             });
             
             Provider.On(ProviderEvents.Connect, () =>
@@ -120,7 +120,7 @@ namespace WalletConnectSharp.Core.Controllers
 
             Provider.On<object>(ProviderEvents.Error, (sender, @event) =>
             {
-                Events.Trigger(RelayerEvents.Error, @event.Response);
+                Events.Trigger(RelayerEvents.Error, @event.EventData);
             });
         }
 

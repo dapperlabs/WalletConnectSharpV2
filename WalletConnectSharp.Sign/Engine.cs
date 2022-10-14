@@ -1,13 +1,237 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using WalletConnectSharp.Common;
+using WalletConnectSharp.Core.Interfaces;
+using WalletConnectSharp.Core.Models.Relay;
+using WalletConnectSharp.Crypto.Interfaces;
+using WalletConnectSharp.Events;
+using WalletConnectSharp.Events.Model;
+using WalletConnectSharp.Network;
 using WalletConnectSharp.Network.Models;
+using WalletConnectSharp.Sign.Controllers;
 using WalletConnectSharp.Sign.Interfaces;
 using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Sign.Models.Engine;
+using WalletConnectSharp.Sign.Models.Expirer;
 
 namespace WalletConnectSharp.Sign
 {
-    public class Engine :IEnginePrivate,IEngine
+    public class Engine : IEnginePrivate, IEngine, IModule
     {
+        private Dictionary<string, Type> requestTypeMapping = new Dictionary<string, Type>();
+        private Dictionary<string, Type> responseTypeMapping = new Dictionary<string, Type>();
+
+        private EventDelegator Events;
+
+        private bool initialized = false;
+        
+        public ISignClient Client { get; }
+
+        private IEnginePrivate PrivateEngineTasks => this;
+
+        public string Name => "engine";
+
+        public string Context
+        {
+            get
+            {
+                return Name;
+            }
+        }
+
+        public Engine(ISignClient client)
+        {
+            this.Client = client;
+            Events = new EventDelegator(this);
+        }
+
+        public async Task Init()
+        {
+            if (!this.initialized)
+            {
+                BuildRequestResponseTypeMapping();
+                
+                await ((IEnginePrivate) this).Cleanup();
+                this.RegisterRelayerEvents();
+                this.RegisterExpirerEvents();
+                this.initialized = true;
+            }
+        }
+
+        private async void RegisterExpirerEvents()
+        {
+            this.Client.Expirer.On<Expiration>(ExpirerEvents.Expired, ExpiredCallback);
+        }
+
+        private async void ExpiredCallback(object sender, GenericEvent<Expiration> e)
+        {
+            var target = new ExpirerTarget(e.EventData.Target);
+
+            if (!string.IsNullOrWhiteSpace(target.Topic))
+            {
+                var topic = target.Topic;
+                if (this.Client.Session.Keys.Contains(topic))
+                {
+                    await PrivateEngineTasks.DeleteSession(topic);
+                    this.Client.Events.Trigger("session_expire", topic);
+                } 
+                else if (this.Client.Pairing.Keys.Contains(topic))
+                {
+                    await PrivateEngineTasks.DeletePairing(topic);
+                    this.Client.Events.Trigger("pairing_expire", topic);
+                }
+            } 
+            else if (target.Id != null)
+            {
+                await PrivateEngineTasks.DeleteProposal((long) target.Id);
+            }
+        }
+
+        private void BuildRequestResponseTypeMapping()
+        {
+            requestTypeMapping.Clear();
+            responseTypeMapping.Clear();
+            
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                foreach (var type in asm.GetTypes())
+                {
+                    var attributes = type.GetCustomAttributes(typeof(WcMethodAttribute), true);
+
+                    if (attributes.Length == 0) continue;
+                    if (attributes.Length > 1) throw new Exception("Only one attribute can be defined");
+
+                    var attribute = (WcMethodAttribute)attributes[0];
+
+                    var methodName = attribute.MethodName;
+                    
+                    requestTypeMapping.Add(methodName, type);
+                    responseTypeMapping.Add(methodName, attribute.ResponseType);
+                }
+            }
+        }
+
+        private void RegisterRelayerEvents()
+        {
+            // Register all Request Types
+            HandleMessageType<PairingDelete, bool>(PrivateEngineTasks.OnPairingDeleteRequest, null);
+            HandleMessageType<PairingPing, bool>(PrivateEngineTasks.OnPairingPingRequest, PrivateEngineTasks.OnSessionRequestResponse);
+            HandleMessageType<SessionPropose, SessionProposeResponse>(PrivateEngineTasks.OnSessionProposeRequest, PrivateEngineTasks.OnSessionProposeResponse);
+            HandleMessageType<SessionSettle, bool>(PrivateEngineTasks.OnSessionSettleRequest, PrivateEngineTasks.OnSessionSettleResponse);
+            HandleMessageType<SessionUpdate, bool>(PrivateEngineTasks.OnSessionUpdateRequest, PrivateEngineTasks.OnSessionUpdateResponse);
+            HandleMessageType<SessionExtend, bool>(PrivateEngineTasks.OnSessionExtendRequest, PrivateEngineTasks.OnSessionExtendResponse);
+            HandleMessageType<SessionDelete, bool>(PrivateEngineTasks.OnSessionDeleteRequest, null);
+            HandleMessageType<SessionPing, bool>(PrivateEngineTasks.OnSessionPingRequest, PrivateEngineTasks.OnSessionPingResponse);
+
+            this.Client.Core.Relayer.On<MessageEvent>(RelayerEvents.Message, RelayerMessageCallback);
+        }
+
+        private async void RelayerMessageCallback(object sender, GenericEvent<MessageEvent> e)
+        {
+            var topic = e.EventData.Topic;
+            var message = e.EventData.Message;
+
+            var payload = await this.Client.Core.Crypto.Decode<JsonRpcPayload>(topic, message);
+            if (payload.IsRequest)
+            {
+                Events.Trigger($"request_{payload.Method}", e.EventData);
+            }
+            else if (payload.IsResponse)
+            {
+                Events.Trigger($"response_raw", new DecodedMessageEvent()
+                {
+                    Topic = topic,
+                    Message = message,
+                    Payload = payload
+                });
+            }
+        }
+
+        // TODO Deal with later?
+        public void HandleSessionRequestMessageType<T, TR>(Func<string, JsonRpcRequest<SessionRequest<T>>, Task> requestCallback, Func<string, JsonRpcResponse<TR>, Task> responseCallback)
+        {
+            HandleMessageType(requestCallback, responseCallback);
+        }
+        
+        public void HandleEventMessageType<T>(Func<string, JsonRpcRequest<SessionEvent<T>>, Task> requestCallback, Func<string, JsonRpcResponse<bool>, Task> responseCallback)
+        {
+            HandleMessageType(requestCallback, responseCallback);
+        }
+
+        public void HandleMessageType<T, TR>(Func<string, JsonRpcRequest<T>, Task> requestCallback, Func<string, JsonRpcResponse<TR>, Task> responseCallback)
+        {
+            var attributes = typeof(T).GetCustomAttributes(typeof(WcMethodAttribute), true);
+            if (attributes.Length != 1)
+                throw new Exception($"Type {typeof(T).FullName} has no WcMethod attribute!");
+
+            var method = attributes.Cast<WcMethodAttribute>().First().MethodName;
+            
+            async void RequestCallback(object sender, GenericEvent<MessageEvent> e)
+            {
+                var topic = e.EventData.Topic;
+                var message = e.EventData.Message;
+
+                var payload = await this.Client.Core.Crypto.Decode<JsonRpcRequest<T>>(topic, message);
+                
+                this.Client.History.JsonRpcHistoryOfType<T, TR>().Set(topic, payload, null);
+
+                if (requestCallback != null)
+                    await requestCallback(topic, payload);
+            }
+            
+            async void ResponseCallback(object sender, GenericEvent<MessageEvent> e)
+            {
+                var topic = e.EventData.Topic;
+                var message = e.EventData.Message;
+
+                var payload = await this.Client.Core.Crypto.Decode<JsonRpcResponse<TR>>(topic, message);
+
+                await this.Client.History.JsonRpcHistoryOfType<T, TR>().Resolve(payload);
+
+                if (responseCallback != null)
+                    await responseCallback(topic, payload);
+            }
+
+            async void InspectResponseRaw(object sender, GenericEvent<DecodedMessageEvent> e)
+            {
+                var topic = e.EventData.Topic;
+                var message = e.EventData.Message;
+
+                var payload = e.EventData.Payload;
+
+                try
+                {
+                    var record = await this.Client.History.JsonRpcHistoryOfType<T, TR>().Get(topic, payload.Id);
+
+                    // ignored if we can't find anything in the history
+                    if (record == null) return;
+                    var resMethod = record.Request.Method;
+                    
+                    // Trigger the true response event, which will trigger ResponseCallback
+                    Events.Trigger($"response_{resMethod}", new MessageEvent()
+                    {
+                        Topic = topic,
+                        Message = message
+                    });
+                }
+                catch
+                {
+                    // ignored if we can't find anything in the history
+                }
+            }
+
+            Events.ListenFor<MessageEvent>($"request_{method}", RequestCallback);
+            
+            Events.ListenFor<MessageEvent>($"response_{method}", ResponseCallback);
+            
+            // Handle response_raw in this context
+            // This will allow us to examine response_raw in every typed context registered
+            Events.ListenFor<DecodedMessageEvent>($"response_raw", InspectResponseRaw);
+        }
+
         Task<long> IEnginePrivate.SendRequest<T>(string topic, T parameters)
         {
             throw new System.NotImplementedException();
@@ -300,12 +524,6 @@ namespace WalletConnectSharp.Sign
         }
 
         public SessionStruct[] Find(FindParams @params)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public ISignClient Client { get; }
-        public Task Init()
         {
             throw new System.NotImplementedException();
         }

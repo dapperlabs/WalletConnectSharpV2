@@ -1,9 +1,10 @@
+using System;
 using Newtonsoft.Json;
 using WalletConnectSharp.Sign.Interfaces;
 
 namespace WalletConnectSharp.Sign.Models.Engine
 {
-    [WcMethod("wc_sessionDelete")]
+    [WcMethod("wc_sessionDelete", typeof(bool))]
     public class SessionDelete : IWcMethod
     {
         [JsonProperty("code")]

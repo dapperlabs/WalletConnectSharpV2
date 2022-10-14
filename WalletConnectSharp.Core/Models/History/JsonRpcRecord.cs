@@ -19,13 +19,13 @@ namespace WalletConnectSharp.Core.Models.History
         public string ChainId { get; set; }
 
         [JsonProperty("response")]
-        public JsonRpcResponse<R> Response;
+        public IJsonRpcResult<R> Response;
 
         /// <summary>
         /// This constructor is required for the JSON deserializer to be able
         /// to identify concrete classes to use when deserializing the interface properties.
         /// </summary>
-        public JsonRpcRecord(JsonRpcRequest<T> request)
+        public JsonRpcRecord(IJsonRpcRequest<T> request)
         {
             Request = request;
         }

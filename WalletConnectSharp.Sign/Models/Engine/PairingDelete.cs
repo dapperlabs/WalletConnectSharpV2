@@ -1,9 +1,10 @@
+using System;
 using Newtonsoft.Json;
 using WalletConnectSharp.Sign.Interfaces;
 
 namespace WalletConnectSharp.Sign.Models.Engine
 {
-    [WcMethod("wc_pairingDelete")]
+    [WcMethod("wc_pairingDelete", typeof(bool))]
     public class PairingDelete : IWcMethod
     {
         [JsonProperty("code")]

@@ -44,7 +44,7 @@ namespace WalletConnectSharp.Events.Tests
             
             events.ListenFor<string>(eventId, delegate(object sender, GenericEvent<string> @event)
             {
-                eventCallbackTask.SetResult(@event.Response);
+                eventCallbackTask.SetResult(@event.EventData);
             });
             var eventData = Guid.NewGuid().ToString();
 
@@ -66,7 +66,7 @@ namespace WalletConnectSharp.Events.Tests
             
             events.ListenForOnce<TestEventData>("abc", delegate(object sender, GenericEvent<TestEventData> @event)
             {
-                result1 = @event.Response;
+                result1 = @event.EventData;
             });
             
             var testData1 = new TestEventData()
@@ -115,24 +115,24 @@ namespace WalletConnectSharp.Events.Tests
 
             events.ListenFor<TestEventData>("abc", delegate(object sender, GenericEvent<TestEventData> @event)
             {
-                result1 = @event.Response;
+                result1 = @event.EventData;
             });
 
             events.ListenFor<ITest>("abc", delegate(object sender, GenericEvent<ITest> @event)
             {
-                result2 = @event.Response;
+                result2 = @event.EventData;
             });
 
 
             events.ListenFor<TestGenericData<TestEventData>>("xyz",
                 delegate(object sender, GenericEvent<TestGenericData<TestEventData>> @event)
                 {
-                    result3 = @event.Response;
+                    result3 = @event.EventData;
                 });
             
             events.ListenFor<ITest>("xyz", delegate(object sender, GenericEvent<ITest> @event)
             {
-                result4 = @event.Response;
+                result4 = @event.EventData;
             });
 
             var testData1 = new TestEventData()
@@ -164,7 +164,7 @@ namespace WalletConnectSharp.Events.Tests
             
             events.ListenForAndDeserialize<TestEventData>("abc", delegate(object sender, GenericEvent<TestEventData> @event)
             {
-                result1 = @event.Response;
+                result1 = @event.EventData;
             });
             
             var testData1 = new TestEventData()

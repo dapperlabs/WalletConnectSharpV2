@@ -101,7 +101,7 @@ namespace WalletConnectSharp.Events
                 try
                 {
                     //Attempt to Deserialize
-                    var converted = JsonConvert.DeserializeObject<TR>(@event.Response);
+                    var converted = JsonConvert.DeserializeObject<TR>(@event.EventData);
 
                     //When we convert, we trigger same eventId with required type TR
                     Trigger(eventId, converted);

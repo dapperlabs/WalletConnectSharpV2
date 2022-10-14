@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using WalletConnectSharp.Events.Interfaces;
 using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Sign.Models.Engine;
 

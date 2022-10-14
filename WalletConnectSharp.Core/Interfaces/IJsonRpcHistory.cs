@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using WalletConnectSharp.Common;
 using WalletConnectSharp.Core.Models.History;
 using WalletConnectSharp.Events.Interfaces;
+using WalletConnectSharp.Network;
 using WalletConnectSharp.Network.Models;
 
 namespace WalletConnectSharp.Core.Interfaces
@@ -21,11 +22,11 @@ namespace WalletConnectSharp.Core.Interfaces
 
         Task Init();
 
-        void Set(string topic, JsonRpcRequest<T> request, string chainId);
+        void Set(string topic, IJsonRpcRequest<T> request, string chainId);
 
         Task<JsonRpcRecord<T, TR>> Get(string topic, long id);
 
-        Task Resolve(JsonRpcResponse<TR> response);
+        Task Resolve(IJsonRpcResult<TR> response);
 
         void Delete(string topic, long? id);
 

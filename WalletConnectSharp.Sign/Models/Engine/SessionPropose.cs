@@ -1,10 +1,11 @@
+using System;
 using Newtonsoft.Json;
 using WalletConnectSharp.Core.Models.Relay;
 using WalletConnectSharp.Sign.Interfaces;
 
 namespace WalletConnectSharp.Sign.Models.Engine
 {
-    [WcMethod("wc_sessionPropose")]
+    [WcMethod("wc_sessionPropose", typeof(SessionProposeResponse))]
     public class SessionPropose : IWcMethod
     {
         [JsonProperty("relays")]
