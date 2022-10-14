@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Core\WalletConnectSharp.Storage\WalletConnectSharp.Storage.csproj" />
+      <ProjectReference Include="..\..\Core Modules\WalletConnectSharp.Storage\WalletConnectSharp.Storage.csproj" />
     </ItemGroup>
 
 </Project>
