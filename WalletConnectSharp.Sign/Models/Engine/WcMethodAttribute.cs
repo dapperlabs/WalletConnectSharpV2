@@ -6,13 +6,10 @@ namespace WalletConnectSharp.Sign.Models.Engine
     public class WcMethodAttribute : Attribute
     {
         public string MethodName { get; }
-        
-        public Type ResponseType { get; }
 
-        public WcMethodAttribute(string method, Type responseType)
+        public WcMethodAttribute(string method)
         {
             MethodName = method;
-            ResponseType = responseType;
         }
     }
 }

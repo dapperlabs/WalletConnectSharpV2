@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models.Heartbeat;
 using WalletConnectSharp.Core.Models.Publisher;
@@ -96,8 +97,18 @@ namespace WalletConnectSharp.Core.Controllers
                         Protocol = RelayProtocols.Default
                     },
                     Tag = 0,
-                    TTL = 21600 // 6 hours
+                    TTL = Clock.SIX_HOURS,
                 };
+            }
+            else
+            {
+                if (opts.Relay == null)
+                {
+                    opts.Relay = new ProtocolOptions()
+                    {
+                        Protocol = RelayProtocols.Default
+                    };
+                }
             }
 
             var @params = new PublishParams()

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models.Relay;
 using WalletConnectSharp.Crypto.Interfaces;
@@ -15,22 +17,22 @@ using WalletConnectSharp.Sign.Controllers;
 using WalletConnectSharp.Sign.Interfaces;
 using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Sign.Models.Engine;
+using WalletConnectSharp.Sign.Models.Engine.Methods;
 using WalletConnectSharp.Sign.Models.Expirer;
 
 namespace WalletConnectSharp.Sign
 {
     public class Engine : IEnginePrivate, IEngine, IModule
     {
-        private Dictionary<string, Type> requestTypeMapping = new Dictionary<string, Type>();
-        private Dictionary<string, Type> responseTypeMapping = new Dictionary<string, Type>();
-
+        private const long ProposalExpiry = Clock.THIRTY_DAYS;
+        
         private EventDelegator Events;
 
         private bool initialized = false;
         
         public ISignClient Client { get; }
 
-        private IEnginePrivate PrivateEngineTasks => this;
+        private IEnginePrivate PrivateThis => this;
 
         public string Name => "engine";
 
@@ -52,9 +54,7 @@ namespace WalletConnectSharp.Sign
         {
             if (!this.initialized)
             {
-                BuildRequestResponseTypeMapping();
-                
-                await ((IEnginePrivate) this).Cleanup();
+                await PrivateThis.Cleanup();
                 this.RegisterRelayerEvents();
                 this.RegisterExpirerEvents();
                 this.initialized = true;
@@ -75,56 +75,32 @@ namespace WalletConnectSharp.Sign
                 var topic = target.Topic;
                 if (this.Client.Session.Keys.Contains(topic))
                 {
-                    await PrivateEngineTasks.DeleteSession(topic);
+                    await PrivateThis.DeleteSession(topic);
                     this.Client.Events.Trigger("session_expire", topic);
                 } 
                 else if (this.Client.Pairing.Keys.Contains(topic))
                 {
-                    await PrivateEngineTasks.DeletePairing(topic);
+                    await PrivateThis.DeletePairing(topic);
                     this.Client.Events.Trigger("pairing_expire", topic);
                 }
             } 
             else if (target.Id != null)
             {
-                await PrivateEngineTasks.DeleteProposal((long) target.Id);
-            }
-        }
-
-        private void BuildRequestResponseTypeMapping()
-        {
-            requestTypeMapping.Clear();
-            responseTypeMapping.Clear();
-            
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                foreach (var type in asm.GetTypes())
-                {
-                    var attributes = type.GetCustomAttributes(typeof(WcMethodAttribute), true);
-
-                    if (attributes.Length == 0) continue;
-                    if (attributes.Length > 1) throw new Exception("Only one attribute can be defined");
-
-                    var attribute = (WcMethodAttribute)attributes[0];
-
-                    var methodName = attribute.MethodName;
-                    
-                    requestTypeMapping.Add(methodName, type);
-                    responseTypeMapping.Add(methodName, attribute.ResponseType);
-                }
+                await PrivateThis.DeleteProposal((long) target.Id);
             }
         }
 
         private void RegisterRelayerEvents()
         {
             // Register all Request Types
-            HandleMessageType<PairingDelete, bool>(PrivateEngineTasks.OnPairingDeleteRequest, null);
-            HandleMessageType<PairingPing, bool>(PrivateEngineTasks.OnPairingPingRequest, PrivateEngineTasks.OnSessionRequestResponse);
-            HandleMessageType<SessionPropose, SessionProposeResponse>(PrivateEngineTasks.OnSessionProposeRequest, PrivateEngineTasks.OnSessionProposeResponse);
-            HandleMessageType<SessionSettle, bool>(PrivateEngineTasks.OnSessionSettleRequest, PrivateEngineTasks.OnSessionSettleResponse);
-            HandleMessageType<SessionUpdate, bool>(PrivateEngineTasks.OnSessionUpdateRequest, PrivateEngineTasks.OnSessionUpdateResponse);
-            HandleMessageType<SessionExtend, bool>(PrivateEngineTasks.OnSessionExtendRequest, PrivateEngineTasks.OnSessionExtendResponse);
-            HandleMessageType<SessionDelete, bool>(PrivateEngineTasks.OnSessionDeleteRequest, null);
-            HandleMessageType<SessionPing, bool>(PrivateEngineTasks.OnSessionPingRequest, PrivateEngineTasks.OnSessionPingResponse);
+            HandleMessageType<PairingDelete, bool>(PrivateThis.OnPairingDeleteRequest, null);
+            HandleMessageType<PairingPing, bool>(PrivateThis.OnPairingPingRequest, PrivateThis.OnSessionRequestResponse);
+            HandleMessageType<SessionPropose, SessionProposeResponse>(PrivateThis.OnSessionProposeRequest, PrivateThis.OnSessionProposeResponse);
+            HandleMessageType<SessionSettle, bool>(PrivateThis.OnSessionSettleRequest, PrivateThis.OnSessionSettleResponse);
+            HandleMessageType<SessionUpdate, bool>(PrivateThis.OnSessionUpdateRequest, PrivateThis.OnSessionUpdateResponse);
+            HandleMessageType<SessionExtend, bool>(PrivateThis.OnSessionExtendRequest, PrivateThis.OnSessionExtendResponse);
+            HandleMessageType<SessionDelete, bool>(PrivateThis.OnSessionDeleteRequest, null);
+            HandleMessageType<SessionPing, bool>(PrivateThis.OnSessionPingRequest, PrivateThis.OnSessionPingResponse);
 
             this.Client.Core.Relayer.On<MessageEvent>(RelayerEvents.Message, RelayerMessageCallback);
         }
@@ -163,11 +139,7 @@ namespace WalletConnectSharp.Sign
 
         public void HandleMessageType<T, TR>(Func<string, JsonRpcRequest<T>, Task> requestCallback, Func<string, JsonRpcResponse<TR>, Task> responseCallback)
         {
-            var attributes = typeof(T).GetCustomAttributes(typeof(WcMethodAttribute), true);
-            if (attributes.Length != 1)
-                throw new Exception($"Type {typeof(T).FullName} has no WcMethod attribute!");
-
-            var method = attributes.Cast<WcMethodAttribute>().First().MethodName;
+            var method = MethodForType<T>();
             
             async void RequestCallback(object sender, GenericEvent<MessageEvent> e)
             {
@@ -232,74 +204,216 @@ namespace WalletConnectSharp.Sign
             Events.ListenFor<DecodedMessageEvent>($"response_raw", InspectResponseRaw);
         }
 
-        Task<long> IEnginePrivate.SendRequest<T>(string topic, T parameters)
+        public string MethodForType<T>()
         {
-            throw new System.NotImplementedException();
+            var attributes = typeof(T).GetCustomAttributes(typeof(WcMethodAttribute), true);
+            if (attributes.Length != 1)
+                throw new Exception($"Type {typeof(T).FullName} has no WcMethod attribute!");
+
+            var method = attributes.Cast<WcMethodAttribute>().First().MethodName;
+
+            return method;
         }
 
-        Task IEnginePrivate.SendResult<T>(long id, string topic, T result)
+        public PublishOptions RpcRequestOptionsForType<T>()
         {
-            throw new System.NotImplementedException();
+            var attributes = typeof(T).GetCustomAttributes(typeof(RpcRequestOptionsAttribute), true);
+            if (attributes.Length != 1)
+                throw new Exception($"Type {typeof(T).FullName} has no RpcRequestOptions attribute!");
+
+            var opts = attributes.Cast<RpcRequestOptionsAttribute>().First();
+
+            return new PublishOptions()
+            {
+                Prompt = opts.Prompt,
+                Tag = opts.Tag,
+                TTL = opts.TTL
+            };
+        }
+        
+        public PublishOptions RpcResponseOptionsForType<T>()
+        {
+            var attributes = typeof(T).GetCustomAttributes(typeof(RpcResponseOptionsAttribute), true);
+            if (attributes.Length != 1)
+                throw new Exception($"Type {typeof(T).FullName} has no RpcResponseOptions attribute!");
+
+            var opts = attributes.Cast<RpcResponseOptionsAttribute>().First();
+
+            return new PublishOptions()
+            {
+                Prompt = opts.Prompt,
+                Tag = opts.Tag,
+                TTL = opts.TTL
+            };
         }
 
-        Task IEnginePrivate.SendError(long id, string topic, ErrorResponse error)
+        async Task<long> IEnginePrivate.SendRequest<T, TR>(string topic, T parameters)
         {
-            throw new System.NotImplementedException();
+            var method = MethodForType<T>();
+
+            var payload = new JsonRpcRequest<T>(method, parameters);
+
+            var message = await this.Client.Core.Crypto.Encode(topic, payload);
+
+            var opts = RpcRequestOptionsForType<T>();
+            
+            this.Client.History.JsonRpcHistoryOfType<T, TR>().Set(topic, payload, null);
+
+            // await is intentionally omitted here because of a possible race condition
+            // where a response is received before the publish call is resolved
+#pragma warning disable CS4014
+            this.Client.Core.Relayer.Publish(topic, message, opts);
+#pragma warning restore CS4014
+
+            return payload.Id;
         }
 
-        void IEnginePrivate.OnRelayEventRequest<T>(EngineCallback<JsonRpcRequest<T>> @event)
+        async Task IEnginePrivate.SendResult<T, TR>(long id, string topic, TR result)
         {
-            throw new System.NotImplementedException();
+            var payload = new JsonRpcResponse<TR>(id, null, result);
+            var message = await this.Client.Core.Crypto.Encode(topic, payload);
+         
+            var opts = RpcResponseOptionsForType<T>();
+            await this.Client.Core.Relayer.Publish(topic, message, opts);
+            await this.Client.History.JsonRpcHistoryOfType<T, TR>().Resolve(payload);
         }
 
-        void IEnginePrivate.OnRelayEventResponse<T>(EngineCallback<JsonRpcResponse<T>> @event)
+        async Task IEnginePrivate.SendError<T, TR>(long id, string topic, ErrorResponse error)
         {
-            throw new System.NotImplementedException();
+            var payload = new JsonRpcResponse<TR>(id, error, default);
+            var message = await this.Client.Core.Crypto.Encode(topic, payload);
+            var opts = RpcResponseOptionsForType<T>();
+            await this.Client.Core.Relayer.Publish(topic, message, opts);
+            await this.Client.History.JsonRpcHistoryOfType<T, TR>().Resolve(payload);
         }
 
-        Task IEnginePrivate.ActivatePairing(string topic)
-        {    
-            throw new System.NotImplementedException();
+        async Task IEnginePrivate.ActivatePairing(string topic)
+        {
+            var expiry = Clock.CalculateExpiry(ProposalExpiry);
+            await this.Client.Pairing.Update(topic, new PairingStruct()
+            {
+                Active = true,
+                Expiry = expiry
+            });
+
+            await PrivateThis.SetExpiry(topic, expiry);
         }
 
-        Task IEnginePrivate.DeleteSession(string topic)
+        async Task IEnginePrivate.DeleteSession(string topic, bool expirerHasDeleted = false)
         {
-            throw new System.NotImplementedException();
+            var session = this.Client.Session.Get(topic);
+            var self = session.Self;
+
+            await this.Client.Core.Relayer.Unsubscribe(topic);
+            await Task.WhenAll(
+                this.Client.Session.Delete(topic, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
+                this.Client.Core.Crypto.DeleteKeyPair(self.PublicKey),
+                this.Client.Core.Crypto.DeleteSymKey(topic),
+                expirerHasDeleted ? Task.CompletedTask : this.Client.Expirer.Delete(topic)
+            );
         }
 
-        Task IEnginePrivate.DeletePairing(string topic)
+        async Task IEnginePrivate.DeletePairing(string topic, bool expirerHasDeleted = false)
         {
-            throw new System.NotImplementedException();
+            await this.Client.Core.Relayer.Unsubscribe(topic);
+            await Task.WhenAll(
+                this.Client.Pairing.Delete(topic, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
+                this.Client.Core.Crypto.DeleteSymKey(topic),
+                expirerHasDeleted ? Task.CompletedTask : this.Client.Expirer.Delete(topic)
+            );
         }
 
-        Task IEnginePrivate.DeleteProposal(long id)
+        Task IEnginePrivate.DeleteProposal(long id, bool expirerHasDeleted = false)
         {
-            throw new System.NotImplementedException();
+            return Task.WhenAll(
+                this.Client.Proposal.Delete(id, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
+                expirerHasDeleted ? Task.CompletedTask : this.Client.Expirer.Delete(id)
+            );
         }
 
-        Task IEnginePrivate.SetExpiry(string topic, long expiry)
+        async Task IEnginePrivate.SetExpiry(string topic, long expiry)
         {
-            throw new System.NotImplementedException();
+            if (this.Client.Pairing.Keys.Contains(topic))
+            {
+                await this.Client.Pairing.Update(topic, new PairingStruct()
+                {
+                    Expiry = expiry
+                });
+            } 
+            else if (this.Client.Session.Keys.Contains(topic))
+            {
+                await this.Client.Session.Update(topic, new SessionStruct()
+                {
+                    Expiry = expiry
+                });
+            }
+            this.Client.Expirer.Set(topic, expiry);
         }
 
-        Task IEnginePrivate.SetProposal(long id, ProposalStruct proposal)
+        async Task IEnginePrivate.SetProposal(long id, ProposalStruct proposal)
         {
-            throw new System.NotImplementedException();
+            await this.Client.Proposal.Set(id, proposal);
+            if (proposal.Expiry != null)
+                this.Client.Expirer.Set(id, (long)proposal.Expiry);
         }
 
         Task IEnginePrivate.Cleanup()
         {
-            throw new System.NotImplementedException();
+            List<string> sessionTopics = (from session in this.Client.Session.Values.Where(e => e.Expiry != null) where Clock.IsExpired(session.Expiry.Value) select session.Topic).ToList();
+            List<string> pairingTopics = (from pair in this.Client.Pairing.Values.Where(e => e.Expiry != null) where Clock.IsExpired(pair.Expiry.Value) select pair.Topic).ToList();
+            List<long> proposalIds = (from p in this.Client.Proposal.Values.Where(e => e.Expiry != null) where Clock.IsExpired(p.Expiry.Value) select p.Id.Value).ToList();
+
+            return Task.WhenAll(
+                sessionTopics.Select(t => PrivateThis.DeleteSession(t)).Concat(
+                    pairingTopics.Select(t => PrivateThis.DeletePairing(t))
+                ).Concat(
+                    proposalIds.Select(id => PrivateThis.DeleteProposal(id))
+                )
+            );
         }
 
-        Task IEnginePrivate.OnSessionProposeRequest(string topic, JsonRpcRequest<SessionPropose> payload)
+        async Task IEnginePrivate.OnSessionProposeRequest(string topic, JsonRpcRequest<SessionPropose> payload)
         {
-            throw new System.NotImplementedException();
+            var @params = payload.Params;
+            var id = payload.Id;
+            try
+            {
+                var expiry = Clock.CalculateExpiry(Clock.FIVE_MINUTES);
+                var proposal = new ProposalStruct()
+                {
+                    Id = id,
+                    PairingTopic = topic,
+                    Expiry = expiry,
+                    Proposer = @params.Proposer,
+                    Relays = @params.Relays,
+                    RequiredNamespaces = @params.RequiredNamespaces
+                };
+                await PrivateThis.SetProposal(id, proposal);
+                this.Client.Events.Trigger("session_proposal", new JsonRpcRequest<ProposalStruct>()
+                {
+                    Id = id,
+                    Params = proposal
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<SessionPropose, SessionProposeResponse>(id, topic,
+                    ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnSessionProposeResponse(string topic, JsonRpcResponse<SessionProposeResponse> payload)
+        async Task IEnginePrivate.OnSessionProposeResponse(string topic, JsonRpcResponse<SessionProposeResponse> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            if (payload.IsError)
+            {
+                await this.Client.Proposal.Delete(id, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED));
+                this.Events.Trigger("session_connect", payload);
+            }
+            else
+            {
+                
+            }
         }
 
         Task IEnginePrivate.OnSessionSettleRequest(string topic, JsonRpcRequest<SessionSettle> payload)
@@ -377,9 +491,78 @@ namespace WalletConnectSharp.Sign
             throw new System.NotImplementedException();
         }
 
-        Task IEnginePrivate.IsValidConnect(ConnectParams @params)
+        async Task IEnginePrivate.IsValidConnect(ConnectParams @params)
         {
-            throw new System.NotImplementedException();
+            if (@params == null)
+                throw WalletConnectException.FromType(ErrorType.MISSING_OR_INVALID, $"Connect() params: {JsonConvert.SerializeObject(@params)}");
+
+            var pairingTopic = @params.PairingTopic;
+            var requiredNamespaces = @params.RequiredNamespaces;
+            var relays = @params.Relays;
+
+            if (pairingTopic != null)
+                await IsValidPairingTopic(pairingTopic);
+        }
+
+        async Task IsValidPairingTopic(string topic)
+        {
+            if (string.IsNullOrWhiteSpace(topic))
+                throw WalletConnectException.FromType(ErrorType.MISSING_OR_INVALID,
+                    $"pairing topic should be a string {topic}");
+
+            if (!this.Client.Pairing.Keys.Contains(topic))
+                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY,
+                    $"pairing topic doesn't exist {topic}");
+
+            if (Clock.IsExpired(this.Client.Pairing.Get(topic).Expiry.Value))
+            {
+                await PrivateThis.DeletePairing(topic);
+                throw WalletConnectException.FromType(ErrorType.EXPIRED, $"pairing topic: {topic}");
+            }
+        }
+
+        async Task IsValidSessionTopic(string topic)
+        {
+            if (string.IsNullOrWhiteSpace(topic))
+                throw WalletConnectException.FromType(ErrorType.MISSING_OR_INVALID,
+                    $"session topic should be a string {topic}");
+            
+            if (!this.Client.Session.Keys.Contains(topic))
+                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY,
+                    $"session topic doesn't exist {topic}");
+            
+            if (Clock.IsExpired(this.Client.Session.Get(topic).Expiry.Value))
+            {
+                await PrivateThis.DeleteSession(topic);
+                throw WalletConnectException.FromType(ErrorType.EXPIRED, $"session topic: {topic}");
+            }
+        }
+
+        async Task IsValidProposalId(long id)
+        {
+            if (!this.Client.Proposal.Keys.Contains(id))
+                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY,
+                    $"proposal id doesn't exist {id}");
+            
+            if (Clock.IsExpired(this.Client.Proposal.Get(id).Expiry.Value))
+            {
+                await PrivateThis.DeleteProposal(id);
+                throw WalletConnectException.FromType(ErrorType.EXPIRED, $"proposal id: {id}");
+            }
+        }
+
+        async Task IsValidSessionOrPairingTopic(string topic)
+        {
+            if (this.Client.Session.Keys.Contains(topic)) await this.IsValidSessionTopic(topic);
+            else if (this.Client.Pairing.Keys.Contains(topic)) await this.IsValidPairingTopic(topic);
+            else if (string.IsNullOrWhiteSpace(topic))
+                throw WalletConnectException.FromType(ErrorType.MISSING_OR_INVALID,
+                    $"session or pairing topic should be a string {topic}");
+            else
+            {
+                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY,
+                    $"session or pairing topic doesn't exist {topic}");
+            }
         }
 
         Task IEnginePrivate.IsValidPair(PairParams pairParams)
@@ -464,7 +647,10 @@ namespace WalletConnectSharp.Sign
 
         private void IsInitialized()
         {
-            throw new System.NotImplementedException();
+            if (!initialized)
+            {
+                throw WalletConnectException.FromType(ErrorType.NOT_INITIALIZED, Name);
+            }
         }
 
         private async Task<CreatePairingData> CreatePairing()

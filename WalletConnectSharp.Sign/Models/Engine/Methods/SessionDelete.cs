@@ -1,10 +1,12 @@
-using System;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Sign.Interfaces;
 
-namespace WalletConnectSharp.Sign.Models.Engine
+namespace WalletConnectSharp.Sign.Models.Engine.Methods
 {
-    [WcMethod("wc_sessionDelete", typeof(bool))]
+    [WcMethod("wc_sessionDelete")]
+    [RpcRequestOptions(Clock.ONE_DAY, false, 1112)]
+    [RpcResponseOptions(Clock.ONE_DAY, false, 1113)]
     public class SessionDelete : IWcMethod
     {
         [JsonProperty("code")]

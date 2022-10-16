@@ -13,10 +13,10 @@ namespace WalletConnectSharp.Sign.Models
         public ProtocolOptions Relay { get; set; }
         
         [JsonProperty("expiry")]
-        public long Expiry { get; set; }
+        public long? Expiry { get; set; }
         
         [JsonProperty("acknowledged")]
-        public bool Acknowledged { get; set; }
+        public bool? Acknowledged { get; set; }
         
         [JsonProperty("controller")]
         public string Controller { get; set; }

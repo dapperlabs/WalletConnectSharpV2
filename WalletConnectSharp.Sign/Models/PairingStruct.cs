@@ -19,13 +19,13 @@ namespace WalletConnectSharp.Sign.Models
         }
         
         [JsonProperty("expiry")]
-        public long Expiry { get; set; }
+        public long? Expiry { get; set; }
         
         [JsonProperty("relay")]
         public ProtocolOptions Relay { get; set; }
         
         [JsonProperty("active")]
-        public bool Active { get; set; }
+        public bool? Active { get; set; }
         
         [JsonProperty("peerMetadata")]
         public Metadata PeerMetadata { get; set; }

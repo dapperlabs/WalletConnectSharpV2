@@ -1,11 +1,13 @@
-using System;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Models.Relay;
 using WalletConnectSharp.Sign.Interfaces;
 
-namespace WalletConnectSharp.Sign.Models.Engine
+namespace WalletConnectSharp.Sign.Models.Engine.Methods
 {
-    [WcMethod("wc_sessionSettle", typeof(bool))]
+    [WcMethod("wc_sessionSettle")]
+    [RpcRequestOptions(Clock.FIVE_MINUTES, false, 1102)]
+    [RpcResponseOptions(Clock.FIVE_MINUTES, false, 1103)]
     public class SessionSettle : IWcMethod
     {
         [JsonProperty("relay")]

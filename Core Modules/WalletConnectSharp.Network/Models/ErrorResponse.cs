@@ -1,4 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common;
 
 namespace WalletConnectSharp.Network.Models
 {
@@ -24,5 +26,27 @@ namespace WalletConnectSharp.Network.Models
         /// </summary>
         [JsonProperty("data")]
         public string Data;
+
+        public static ErrorResponse FromErrorType(ErrorType type, object @params = null, string extraData = null)
+        {
+            string message = SdkErrors.MessageFromType(type, @params);
+
+            return new ErrorResponse()
+            {
+                Code = (long) type,
+                Message = message,
+                Data = extraData
+            };
+        }
+
+        public static ErrorResponse FromException(WalletConnectException walletConnectException)
+        {
+            return new ErrorResponse()
+            {
+                Code = walletConnectException.Code,
+                Message = walletConnectException.Message,
+                Data = walletConnectException.ToString()
+            };
+        }
     }
 }

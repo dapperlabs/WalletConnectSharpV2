@@ -3,28 +3,25 @@ using WalletConnectSharp.Network;
 using WalletConnectSharp.Network.Models;
 using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Sign.Models.Engine;
+using WalletConnectSharp.Sign.Models.Engine.Methods;
 
 namespace WalletConnectSharp.Sign.Interfaces
 {
     internal interface IEnginePrivate
     {
-        internal Task<long> SendRequest<T>(string topic, T parameters) where T : IWcMethod;
+        internal Task<long> SendRequest<T, TR>(string topic, T parameters) where T : IWcMethod;
 
-        internal Task SendResult<T>(long id, string topic, T result) where T : IWcMethod;
+        internal Task SendResult<T, TR>(long id, string topic, TR result) where T : IWcMethod;
 
-        internal Task SendError(long id, string topic, ErrorResponse error);
-
-        internal void OnRelayEventRequest<T>(EngineCallback<JsonRpcRequest<T>> @event);
-
-        internal void OnRelayEventResponse<T>(EngineCallback<JsonRpcResponse<T>> @event);
+        internal Task SendError<T, TR>(long id, string topic, ErrorResponse error) where T : IWcMethod;
 
         internal Task ActivatePairing(string topic);
 
-        internal Task DeleteSession(string topic);
+        internal Task DeleteSession(string topic, bool expirerHasDeleted = false);
 
-        internal Task DeletePairing(string topic);
+        internal Task DeletePairing(string topic, bool expirerHasDeleted = false);
 
-        internal Task DeleteProposal(long id);
+        internal Task DeleteProposal(long id, bool expirerHasDeleted = false);
 
         internal Task SetExpiry(string topic, long expiry);
 

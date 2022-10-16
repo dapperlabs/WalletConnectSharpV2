@@ -7,19 +7,19 @@ namespace WalletConnectSharp.Sign.Models
     public struct ProposalStruct : IKeyHolder<long>
     {
         [JsonProperty("id")]
-        public long Id { get; set; }
+        public long? Id { get; set; }
 
         [JsonIgnore]
         public long Key
         {
             get
             {
-                return Id;
+                return (long) Id;
             }
         }
         
         [JsonProperty("expiry")]
-        public long Expiry { get; set; }
+        public long? Expiry { get; set; }
         
         [JsonProperty("relays")]
         public ProtocolOptions[] Relays { get; set; }

@@ -17,18 +17,18 @@ namespace WalletConnectSharp.Sign.Interfaces
 
         bool Has(string key);
 
-        bool Has(int key);
+        bool Has(long key);
 
-        void Set(string key, int expiry);
+        void Set(string key, long expiry);
 
-        void Set(int key, int expiry);
+        void Set(long key, long expiry);
 
         Expiration Get(string key);
 
-        Expiration Get(int key);
+        Expiration Get(long key);
 
-        void Delete(string key);
+        Task Delete(string key);
 
-        void Delete(int key);
+        Task Delete(long key);
     }
 }

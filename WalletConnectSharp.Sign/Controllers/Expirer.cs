@@ -107,7 +107,7 @@ namespace WalletConnectSharp.Sign.Controllers
             }
         }
 
-        public bool Has(int key)
+        public bool Has(long key)
         {
             try
             {
@@ -120,19 +120,19 @@ namespace WalletConnectSharp.Sign.Controllers
             }
         }
 
-        public void Set(string key, int expiry)
+        public void Set(string key, long expiry)
         {
             IsInitialized();
             SetWithTarget("topic", key, expiry);
         }
 
-        public void Set(int key, int expiry)
+        public void Set(long key, long expiry)
         {
             IsInitialized();
             SetWithTarget("id", key, expiry);
         }
 
-        private void SetWithTarget(string targetType, object key, int expiry)
+        private void SetWithTarget(string targetType, object key, long expiry)
         {
             var target = FormatTarget(targetType, key);
             var expiration = new Expiration()
@@ -155,7 +155,7 @@ namespace WalletConnectSharp.Sign.Controllers
             return GetWithTarget("topic", key);
         }
 
-        public Expiration Get(int key)
+        public Expiration Get(long key)
         {
             IsInitialized();
             return GetWithTarget("id", key);
@@ -167,14 +167,42 @@ namespace WalletConnectSharp.Sign.Controllers
             return GetExpiration(target);
         }
 
-        public void Delete(string key)
+        public Task Delete(string key)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            var target = FormatTarget("topic", key);
+            var exists = this.Has(target);
+            if (exists)
+            {
+                var expiration = this.GetExpiration(target);
+                this._expirations.Remove(target);
+                this.Events.Trigger(ExpirerEvents.Deleted, new ExpirerEventArgs()
+                {
+                    Expiration = expiration,
+                    Target = target
+                });
+            }
+
+            return Task.CompletedTask;
         }
 
-        public void Delete(int key)
+        public Task Delete(long key)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            var target = FormatTarget("id", key);
+            var exists = this.Has(target);
+            if (exists)
+            {
+                var expiration = this.GetExpiration(target);
+                this._expirations.Remove(target);
+                this.Events.Trigger(ExpirerEvents.Deleted, new ExpirerEventArgs()
+                {
+                    Expiration = expiration,
+                    Target = target
+                });
+            }
+
+            return Task.CompletedTask;
         }
 
         private void DeleteWithTarget(string targetType, object key)

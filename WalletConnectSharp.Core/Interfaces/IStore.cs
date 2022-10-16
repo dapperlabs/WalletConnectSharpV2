@@ -17,8 +17,6 @@ namespace WalletConnectSharp.Core.Interfaces
         public Task Set(TKey key, TValue value);
 
         public TValue Get(TKey key);
-        
-        //public TValue GetAll()
 
         public Task Update(TKey key, TValue update);
 

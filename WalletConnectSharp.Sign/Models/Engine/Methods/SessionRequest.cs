@@ -1,11 +1,13 @@
-using System;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Network.Models;
 using WalletConnectSharp.Sign.Interfaces;
 
-namespace WalletConnectSharp.Sign.Models.Engine
+namespace WalletConnectSharp.Sign.Models.Engine.Methods
 {
-    [WcMethod("wc_sessionRequest", typeof(JsonRpcPayload))]
+    [WcMethod("wc_sessionRequest")]
+    [RpcRequestOptions(Clock.ONE_DAY, true, 1108)]
+    [RpcResponseOptions(Clock.ONE_DAY, false, 1109)]
     public class SessionRequest<T> : IWcMethod
     {
         [JsonProperty("chainId")]
