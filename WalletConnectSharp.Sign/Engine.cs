@@ -158,7 +158,7 @@ namespace WalletConnectSharp.Sign
 
                 var payload = await this.Client.Core.Crypto.Decode<JsonRpcRequest<T>>(topic, message);
                 
-                this.Client.History.JsonRpcHistoryOfType<T, TR>().Set(topic, payload, null);
+                (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Set(topic, payload, null);
 
                 if (requestCallback != null)
                     await requestCallback(topic, payload);
@@ -171,7 +171,7 @@ namespace WalletConnectSharp.Sign
 
                 var payload = await this.Client.Core.Crypto.Decode<JsonRpcResponse<TR>>(topic, message);
 
-                await this.Client.History.JsonRpcHistoryOfType<T, TR>().Resolve(payload);
+                await (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Resolve(payload);
 
                 if (responseCallback != null)
                     await responseCallback(topic, payload);
@@ -186,7 +186,7 @@ namespace WalletConnectSharp.Sign
 
                 try
                 {
-                    var record = await this.Client.History.JsonRpcHistoryOfType<T, TR>().Get(topic, payload.Id);
+                    var record = await (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Get(topic, payload.Id);
 
                     // ignored if we can't find anything in the history
                     if (record == null) return;
@@ -267,7 +267,7 @@ namespace WalletConnectSharp.Sign
 
             var opts = RpcRequestOptionsForType<T>();
             
-            this.Client.History.JsonRpcHistoryOfType<T, TR>().Set(topic, payload, null);
+            (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Set(topic, payload, null);
 
             // await is intentionally omitted here because of a possible race condition
             // where a response is received before the publish call is resolved
@@ -285,7 +285,7 @@ namespace WalletConnectSharp.Sign
          
             var opts = RpcResponseOptionsForType<T>();
             await this.Client.Core.Relayer.Publish(topic, message, opts);
-            await this.Client.History.JsonRpcHistoryOfType<T, TR>().Resolve(payload);
+            await (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Resolve(payload);
         }
 
         async Task IEnginePrivate.SendError<T, TR>(long id, string topic, ErrorResponse error)
@@ -294,7 +294,7 @@ namespace WalletConnectSharp.Sign
             var message = await this.Client.Core.Crypto.Encode(topic, payload);
             var opts = RpcResponseOptionsForType<T>();
             await this.Client.Core.Relayer.Publish(topic, message, opts);
-            await this.Client.History.JsonRpcHistoryOfType<T, TR>().Resolve(payload);
+            await (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Resolve(payload);
         }
 
         async Task IEnginePrivate.ActivatePairing(string topic)

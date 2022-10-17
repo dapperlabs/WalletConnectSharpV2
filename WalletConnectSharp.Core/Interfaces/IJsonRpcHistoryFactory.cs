@@ -1,9 +1,11 @@
+using System.Threading.Tasks;
+
 namespace WalletConnectSharp.Core.Interfaces
 {
     public interface IJsonRpcHistoryFactory
     {
         ICore Core { get; }
         
-        IJsonRpcHistory<T, TR> JsonRpcHistoryOfType<T, TR>();
+        Task<IJsonRpcHistory<T, TR>> JsonRpcHistoryOfType<T, TR>();
     }
 }
