@@ -155,14 +155,17 @@
                 case ErrorType.UNSUPPORTED_NOTIFICATION:
                     errorMessage = "Requested notification types are not supported: {types}";
                     break;
-                case ErrorType.UNSUPPORTED_SIGNAL:
-                    errorMessage = "Proposed {context} signal is unsupported";
+                case ErrorType.UNSUPPORTED_ACCOUNTS:
+                    errorMessage = "{message}";
                     break;
                 case ErrorType.USER_DISCONNECTED:
                     errorMessage = "User disconnected {context}";
                     break;
                 case ErrorType.UNKNOWN:
                     errorMessage = "Unknown error {params}";
+                    break;
+                case ErrorType.NON_CONFORMING_NAMESPACES:
+                    errorMessage = (string)@params;
                     break;
             }
 

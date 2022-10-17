@@ -1,22 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using WalletConnectSharp.Common;
 using WalletConnectSharp.Common.Utils;
-using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models.Relay;
-using WalletConnectSharp.Crypto.Interfaces;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
-using WalletConnectSharp.Network;
 using WalletConnectSharp.Network.Models;
-using WalletConnectSharp.Sign.Controllers;
 using WalletConnectSharp.Sign.Interfaces;
 using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Sign.Models.Engine;
@@ -25,7 +18,7 @@ using WalletConnectSharp.Sign.Models.Expirer;
 
 namespace WalletConnectSharp.Sign
 {
-    public class Engine : IEnginePrivate, IEngine, IModule
+    public partial class Engine : IEnginePrivate, IEngine, IModule
     {
         private const long ProposalExpiry = Clock.THIRTY_DAYS;
         private const long SessionExpiry = Clock.SEVEN_DAYS;
@@ -734,135 +727,6 @@ namespace WalletConnectSharp.Sign
             }
         }
 
-        async Task IEnginePrivate.IsValidConnect(ConnectParams @params)
-        {
-            if (@params == null)
-                throw WalletConnectException.FromType(ErrorType.MISSING_OR_INVALID, $"Connect() params: {JsonConvert.SerializeObject(@params)}");
-
-            var pairingTopic = @params.PairingTopic;
-            var requiredNamespaces = @params.RequiredNamespaces;
-            var relays = @params.Relays;
-
-            if (pairingTopic != null)
-                await IsValidPairingTopic(pairingTopic);
-        }
-
-        async Task IsValidPairingTopic(string topic)
-        {
-            if (string.IsNullOrWhiteSpace(topic))
-                throw WalletConnectException.FromType(ErrorType.MISSING_OR_INVALID,
-                    $"pairing topic should be a string {topic}");
-
-            if (!this.Client.Pairing.Keys.Contains(topic))
-                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY,
-                    $"pairing topic doesn't exist {topic}");
-
-            if (Clock.IsExpired(this.Client.Pairing.Get(topic).Expiry.Value))
-            {
-                await PrivateThis.DeletePairing(topic);
-                throw WalletConnectException.FromType(ErrorType.EXPIRED, $"pairing topic: {topic}");
-            }
-        }
-
-        async Task IsValidSessionTopic(string topic)
-        {
-            if (string.IsNullOrWhiteSpace(topic))
-                throw WalletConnectException.FromType(ErrorType.MISSING_OR_INVALID,
-                    $"session topic should be a string {topic}");
-            
-            if (!this.Client.Session.Keys.Contains(topic))
-                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY,
-                    $"session topic doesn't exist {topic}");
-            
-            if (Clock.IsExpired(this.Client.Session.Get(topic).Expiry.Value))
-            {
-                await PrivateThis.DeleteSession(topic);
-                throw WalletConnectException.FromType(ErrorType.EXPIRED, $"session topic: {topic}");
-            }
-        }
-
-        async Task IsValidProposalId(long id)
-        {
-            if (!this.Client.Proposal.Keys.Contains(id))
-                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY,
-                    $"proposal id doesn't exist {id}");
-            
-            if (Clock.IsExpired(this.Client.Proposal.Get(id).Expiry.Value))
-            {
-                await PrivateThis.DeleteProposal(id);
-                throw WalletConnectException.FromType(ErrorType.EXPIRED, $"proposal id: {id}");
-            }
-        }
-
-        async Task IsValidSessionOrPairingTopic(string topic)
-        {
-            if (this.Client.Session.Keys.Contains(topic)) await this.IsValidSessionTopic(topic);
-            else if (this.Client.Pairing.Keys.Contains(topic)) await this.IsValidPairingTopic(topic);
-            else if (string.IsNullOrWhiteSpace(topic))
-                throw WalletConnectException.FromType(ErrorType.MISSING_OR_INVALID,
-                    $"session or pairing topic should be a string {topic}");
-            else
-            {
-                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY,
-                    $"session or pairing topic doesn't exist {topic}");
-            }
-        }
-
-        async Task IEnginePrivate.IsValidPair(PairParams pairParams)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidSessionSettleRequest(SessionSettle settle)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidApprove(ApproveParams @params)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidReject(RejectParams @params)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidUpdate(UpdateParams @params)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidExtend(ExtendParams @params)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidRequest<T>(RequestParams<T> @params)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidRespond<T>(RespondParams<T> @params)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidPing(PingParams @params)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidEmit<T>(EmitParams<T> @params)
-        {
-            // TODO Implement
-        }
-
-        async Task IEnginePrivate.IsValidDisconnect(DisconnectParams @params)
-        {
-            // TODO Implement
-        }
-
         private UriParameters ParseUri(string uri)
         {
             var pathStart = uri.IndexOf(":", StringComparison.Ordinal);
@@ -997,14 +861,6 @@ namespace WalletConnectSharp.Sign
                 Uri = uri,
                 Approval = approvalTask.Task
             };
-        }
-
-        private void IsInitialized()
-        {
-            if (!initialized)
-            {
-                throw WalletConnectException.FromType(ErrorType.NOT_INITIALIZED, Name);
-            }
         }
 
         private async Task<CreatePairingData> CreatePairing()
@@ -1340,75 +1196,6 @@ namespace WalletConnectSharp.Sign
                 });
                 await PrivateThis.DeletePairing(topic);
             }
-        }
-
-        private bool HasOverlap(string[] a, string[] b)
-        {
-            var matches = a.Where(x => b.Contains(x));
-            return matches.Count() == a.Length;
-        }
-
-        private string[] GetAccountsChains(string[] accounts)
-        {
-            List<string> chains = new List<string>();
-            foreach (var account in accounts)
-            {
-                var values = account.Split(":");
-                var chain = values[0];
-                var chainId = values[1];
-                
-                chains.Add($"{chain}:{chainId}");
-            }
-
-            return chains.ToArray();
-        }
-
-        private bool IsSessionCompatible(SessionStruct session, FindParams @params)
-        {
-            var requiredNamespaces = @params.RequiredNamespaces;
-            var compatible = true;
-
-            var sessionKeys = session.Namespaces.Keys.ToArray();
-            var paramsKeys = requiredNamespaces.Keys.ToArray();
-
-            if (!HasOverlap(paramsKeys, sessionKeys)) return false;
-
-            foreach (var key in sessionKeys)
-            {
-                var value = session.Namespaces[key];
-                var accounts = value.Accounts;
-                var methods = value.Methods;
-                var events = value.Events;
-                var extension = value.Extension;
-                var chains = GetAccountsChains(accounts);
-                var requiredNamespace = requiredNamespaces[key];
-
-                if (!HasOverlap(requiredNamespace.Chains, chains) ||
-                    !HasOverlap(requiredNamespace.Methods, methods) ||
-                    !HasOverlap(requiredNamespace.Events, events))
-                    compatible = false;
-
-                if (compatible && extension != null && extension.Length > 0)
-                {
-                    foreach (var extensionNamespace in extension)
-                    {
-                        var extAccounts = extensionNamespace.Accounts;
-                        var extMethods = extensionNamespace.Methods;
-                        var extEvents = extensionNamespace.Events;
-                        var extChains = GetAccountsChains(extAccounts);
-                        var overlap = false;
-
-                        if (requiredNamespace.Extension != null)
-                            overlap = requiredNamespace.Extension.Any(re =>
-                                HasOverlap(re.Chains, extChains) && HasOverlap(re.Methods, extMethods) &&
-                                HasOverlap(re.Events, extEvents));
-
-                        if (!overlap) compatible = false;
-                    }
-                }
-            }
-
-            return compatible;
         }
 
         public SessionStruct[] Find(FindParams @params)

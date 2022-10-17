@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 using WalletConnectSharp.Common;
@@ -47,6 +48,11 @@ namespace WalletConnectSharp.Network.Models
                 Message = walletConnectException.Message,
                 Data = walletConnectException.ToString()
             };
+        }
+
+        public WalletConnectException ToError()
+        {
+            return WalletConnectException.FromType((ErrorType)Code);
         }
     }
 }
