@@ -24,5 +24,9 @@ namespace WalletConnectSharp.Sign.Interfaces
         IExpirer Expirer { get; }
         
         SignClientOptions Options { get; }
+        
+        string Protocol { get; }
+        
+        int Version { get; }
     }
 }

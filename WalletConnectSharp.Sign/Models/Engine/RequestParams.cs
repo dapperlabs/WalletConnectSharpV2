@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using WalletConnectSharp.Network;
+using WalletConnectSharp.Network.Models;
 
 namespace WalletConnectSharp.Sign.Models.Engine
 {
@@ -12,6 +13,6 @@ namespace WalletConnectSharp.Sign.Models.Engine
         public string ChainId { get; set; }
         
         [JsonProperty("request")]
-        public IRequestArguments<T> Request { get; set; }
+        public JsonRpcRequest<T> Request { get; set; }
     }
 }

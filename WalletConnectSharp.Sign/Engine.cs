@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WalletConnectSharp.Common;
@@ -26,6 +29,7 @@ namespace WalletConnectSharp.Sign
     {
         private const long ProposalExpiry = Clock.THIRTY_DAYS;
         private const long SessionExpiry = Clock.SEVEN_DAYS;
+        private const int KeyLength = 32;
         
         private EventDelegator Events;
 
@@ -620,7 +624,7 @@ namespace WalletConnectSharp.Sign
             // where session_ping listener is not yet initialized
             await Task.Delay(500);
 
-            this.Events.Trigger($"session_ping{id}", payload);
+            this.Events.Trigger($"pairing_ping{id}", payload);
         }
 
         async Task IEnginePrivate.OnSessionDeleteRequest(string topic, JsonRpcRequest<SessionDelete> payload)
@@ -859,12 +863,46 @@ namespace WalletConnectSharp.Sign
             throw new System.NotImplementedException();
         }
 
-        public async Task<IConnectedData> Connect(ConnectParams @params)
+        private UriParameters ParseUri(string uri)
+        {
+            var pathStart = uri.IndexOf(":", StringComparison.Ordinal);
+            int? pathEnd = uri.IndexOf("?", StringComparison.Ordinal) != -1 ? uri.IndexOf("?", StringComparison.Ordinal) : (int?)null;
+            var protocol = uri.Substring(0, pathStart);
+
+            string path;
+            if (pathEnd != null) path = uri.Substring(pathStart + 1, (int)pathEnd);
+            else path = uri.Substring(pathStart + 1);
+
+            var requiredValues = path.Split("@");
+            string queryString = pathEnd != null ? uri.Substring((int)pathEnd) : "";
+            var queryParams = Regex.Matches(queryString, "([^?=&]+)(=([^&]*))?").Cast<Match>()
+                .ToDictionary(x => x.Groups[1].Value, x => x.Groups[3].Value);
+
+            var result = new UriParameters()
+            {
+                Protocol = protocol,
+                Topic = requiredValues[0],
+                Version = int.Parse(requiredValues[1]),
+                SymKey = queryParams["symKey"],
+                Relay = new ProtocolOptions()
+                {
+                    Protocol = queryParams["relay-protocol"],
+                    Data = queryParams["relay-data"]
+                }
+            };
+
+            return result;
+        }
+
+        public async Task<ConnectedData> Connect(ConnectParams @params)
         {
             this.IsInitialized();
-            await ((IEnginePrivate)this).IsValidConnect(@params);
+            await PrivateThis.IsValidConnect(@params);
+            var pairingTopic = @params.PairingTopic;
+            var requiredNamespaces = @params.RequiredNamespaces;
+            var relays = @params.Relays;
             var topic = @params.PairingTopic;
-            string uri;
+            string uri = "";
             var active = false;
 
             if (string.IsNullOrEmpty(topic))
@@ -880,8 +918,85 @@ namespace WalletConnectSharp.Sign
                 topic = CreatePairing.Topic;
                 uri = CreatePairing.Uri;
             }
+
+            var publicKey = await this.Client.Core.Crypto.GenerateKeyPair();
+            var proposal = new SessionPropose()
+            {
+                RequiredNamespaces = requiredNamespaces,
+                Relays = relays != null
+                    ? new[] { relays }
+                    : new[]
+                    {
+                        new ProtocolOptions()
+                        {
+                            Protocol = RelayProtocols.Default
+                        }
+                    },
+                Proposer = new Participant()
+                {
+                    PublicKey = publicKey,
+                    Metadata = this.Client.Metadata
+                }
+            };
+
+            TaskCompletionSource<SessionStruct> approvalTask = new TaskCompletionSource<SessionStruct>();
+            this.Events.ListenForOnce<SessionStruct>("session_connect", async (sender, e) =>
+            {
+                var session = e.EventData;
+                session.Self.PublicKey = publicKey;
+                var completeSession = new SessionStruct()
+                {
+                    Acknowledged = session.Acknowledged,
+                    Controller = session.Controller,
+                    Expiry = session.Expiry,
+                    RequiredNamespaces = requiredNamespaces,
+                    Namespaces = session.Namespaces,
+                    Peer = session.Peer,
+                    Relay = session.Relay,
+                    Self = session.Self,
+                    Topic = session.Topic
+                };
+                await PrivateThis.SetExpiry(session.Topic, session.Expiry.Value);
+                if (!string.IsNullOrWhiteSpace(topic))
+                {
+                    await this.Client.Pairing.Update(topic, new PairingStruct()
+                    {
+                        PeerMetadata = session.Peer.Metadata
+                    });
+                }
+                approvalTask.SetResult(completeSession);
+            });
             
-            
+            this.Events.ListenForOnce<JsonRpcResponse<SessionProposeResponse>>("session_connect", (sender, e) =>
+            {
+                if (e.EventData.IsError)
+                {
+                    approvalTask.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                }
+            });
+
+            if (string.IsNullOrWhiteSpace(topic))
+            {
+                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY, $"connect() pairing topic: {topic}");
+            }
+
+            var id = await PrivateThis.SendRequest<SessionPropose, bool>(topic, proposal);
+            var expiry = Clock.CalculateExpiry(Clock.FIVE_MINUTES);
+
+            await PrivateThis.SetProposal(id, new ProposalStruct()
+            {
+                Expiry = expiry,
+                Id = id,
+                Proposer = proposal.Proposer,
+                Relays = proposal.Relays,
+                RequiredNamespaces = proposal.RequiredNamespaces
+            });
+
+            return new ConnectedData()
+            {
+                Uri = uri,
+                Approval = approvalTask.Task
+            };
         }
 
         private void IsInitialized()
@@ -894,63 +1009,412 @@ namespace WalletConnectSharp.Sign
 
         private async Task<CreatePairingData> CreatePairing()
         {
-            throw new System.NotImplementedException();
+            byte[] symKeyRaw = new byte[KeyLength];
+            RandomNumberGenerator.Fill(symKeyRaw);
+            var symKey = symKeyRaw.ToHex();
+            var topic = await this.Client.Core.Crypto.SetSymKey(symKey);
+            var expiry = Clock.CalculateExpiry(Clock.FIVE_MINUTES);
+            var relay = new ProtocolOptions()
+            {
+                Protocol = RelayProtocols.Default
+            };
+            var pairing = new PairingStruct()
+            {
+                Topic = topic,
+                Expiry = expiry,
+                Relay = relay,
+                Active = false,
+            };
+            var uri = $"{this.Client.Protocol}:{topic}@{this.Client.Version}?"
+                .AddQueryParam("symKey", symKey)
+                .AddQueryParam("relay-protocol", relay.Protocol)
+                .AddQueryParam("relay-data", relay.Data);
+
+            await this.Client.Pairing.Set(topic, pairing);
+            await this.Client.Core.Relayer.Subscribe(topic);
+            await PrivateThis.SetExpiry(topic, expiry);
+
+            return new CreatePairingData()
+            {
+                Topic = topic,
+                Uri = uri
+            };
         }
 
 
-        public Task<PairingStruct> Pair(PairParams pairParams)
+        public async Task<PairingStruct> Pair(PairParams pairParams)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidPair(pairParams);
+            var uriParams = ParseUri(pairParams.Uri);
+
+            var topic = uriParams.Topic;
+            var symKey = uriParams.SymKey;
+            var relay = uriParams.Relay;
+            var expiry = Clock.CalculateExpiry(Clock.FIVE_MINUTES);
+            var pairing = new PairingStruct()
+            {
+                Topic = topic,
+                Relay = relay,
+                Expiry = expiry,
+                Active = false,
+            };
+
+            await this.Client.Pairing.Set(topic, pairing);
+            await this.Client.Core.Crypto.SetSymKey(symKey, topic);
+            await this.Client.Core.Relayer.Subscribe(topic, new SubscribeOptions()
+            {
+                Relay = relay
+            });
+            await PrivateThis.SetExpiry(topic, expiry);
+
+            return pairing;
         }
 
-        public Task<IApprovedData> Approve(ApproveParams @params)
+        public async Task<IApprovedData> Approve(ApproveParams @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidApprove(@params);
+            var id = @params.Id;
+            var relayProtocol = @params.RelayProtocol;
+            var namespaces = @params.Namespaces;
+            var proposal = this.Client.Proposal.Get(id);
+            var pairingTopic = proposal.PairingTopic;
+            var proposer = proposal.Proposer;
+            var requiredNamespaces = proposal.RequiredNamespaces;
+
+            var selfPublicKey = await this.Client.Core.Crypto.GenerateKeyPair();
+            var peerPublicKey = proposer.PublicKey;
+            var sessionTopic = await this.Client.Core.Crypto.GenerateSharedKey(
+                selfPublicKey,
+                peerPublicKey
+            );
+
+            var sessionSettle = new SessionSettle()
+            {
+                Relay = new ProtocolOptions()
+                {
+                    Protocol = relayProtocol != null ? relayProtocol : "irn"
+                },
+                Namespaces = namespaces,
+                Controller = new Participant()
+                {
+                    PublicKey = selfPublicKey,
+                    Metadata = this.Client.Metadata
+                },
+                Expiry = Clock.CalculateExpiry(SessionExpiry)
+            };
+
+            await this.Client.Core.Relayer.Subscribe(sessionTopic);
+            var requestId = await PrivateThis.SendRequest<SessionSettle, bool>(sessionTopic, sessionSettle);
+
+            var acknowledgedTask = new TaskCompletionSource<SessionStruct>();
+            
+            this.Events.ListenForOnce<JsonRpcResponse<bool>>($"session_approve{requestId}", (sender, e) =>
+            {
+                if (e.EventData.IsError)
+                    acknowledgedTask.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                else
+                    acknowledgedTask.SetResult(this.Client.Session.Get(sessionTopic));
+            });
+
+            var session = new SessionStruct()
+            {
+                Topic = sessionTopic,
+                Acknowledged = false,
+                Self = sessionSettle.Controller,
+                Peer = proposer,
+                Controller = selfPublicKey,
+                Expiry = sessionSettle.Expiry,
+                Namespaces = sessionSettle.Namespaces,
+                Relay = sessionSettle.Relay,
+                RequiredNamespaces = requiredNamespaces
+            };
+
+            await this.Client.Session.Set(sessionTopic, session);
+            await PrivateThis.SetExpiry(sessionTopic, Clock.CalculateExpiry(SessionExpiry));
+            if (!string.IsNullOrWhiteSpace(pairingTopic))
+                await this.Client.Pairing.Update(pairingTopic, new PairingStruct()
+                {
+                    PeerMetadata = session.Peer.Metadata
+                });
+
+            if (!string.IsNullOrWhiteSpace(pairingTopic) && id > 0)
+            {
+                await PrivateThis.SendResult<SessionPropose, SessionProposeResponse>(id, pairingTopic,
+                    new SessionProposeResponse()
+                    {
+                        Relay = new ProtocolOptions()
+                        {
+                            Protocol = relayProtocol != null ? relayProtocol : "irn"
+                        },
+                        ResponderPublicKey = selfPublicKey
+                    });
+                await this.Client.Proposal.Delete(id, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED));
+                await PrivateThis.ActivatePairing(pairingTopic);
+            }
+            
+            return IApprovedData.FromTask(sessionTopic, acknowledgedTask.Task);
         }
 
-        public Task Reject(RejectParams @params)
+        public async Task Reject(RejectParams @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidReject(@params);
+            var id = @params.Id;
+            var reason = @params.Reason;
+            var proposal = this.Client.Proposal.Get(id);
+            var pairingTopic = proposal.PairingTopic;
+
+            if (!string.IsNullOrWhiteSpace(pairingTopic))
+            {
+                await PrivateThis.SendError<SessionPropose, SessionProposeResponse>(id, pairingTopic, reason);
+                await this.Client.Proposal.Delete(id, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED));
+            }
         }
 
-        public Task<IAcknowledgement> Update(UpdateParams @params)
+        public async Task<IAcknowledgement> Update(UpdateParams @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidUpdate(@params);
+            var topic = @params.Topic;
+            var namespaces = @params.Namespaces;
+            var id = await PrivateThis.SendRequest<SessionUpdate, bool>(topic, new SessionUpdate()
+            {
+                Namespaces = namespaces
+            });
+
+            TaskCompletionSource<bool> acknowledgedTask = new TaskCompletionSource<bool>();
+            this.Events.ListenForOnce<JsonRpcResponse<bool>>($"session_update{id}", (sender, e) =>
+            {
+                if (e.EventData.IsError)
+                    acknowledgedTask.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                else
+                    acknowledgedTask.SetResult(e.EventData.Result);
+            });
+
+            await this.Client.Session.Update(topic, new SessionStruct()
+            {
+                Namespaces = namespaces
+            });
+            
+            return IAcknowledgement.FromTask(acknowledgedTask.Task);
         }
 
-        public Task<IAcknowledgement> Extend(ExtendParams @params)
+        public async Task<IAcknowledgement> Extend(ExtendParams @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidExtend(@params);
+            var topic = @params.Topic;
+            var id = await PrivateThis.SendRequest<SessionExtend, bool>(topic, new SessionExtend());
+            
+            TaskCompletionSource<bool> acknowledgedTask = new TaskCompletionSource<bool>();
+            this.Events.ListenForOnce<JsonRpcResponse<bool>>($"session_extend{id}", (sender, e) =>
+            {
+                if (e.EventData.IsError)
+                    acknowledgedTask.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                else
+                    acknowledgedTask.SetResult(e.EventData.Result);
+            });
+
+            await PrivateThis.SetExpiry(topic, Clock.CalculateExpiry(SessionExpiry));
+            
+            return IAcknowledgement.FromTask(acknowledgedTask.Task);
         }
 
-        public Task<TR> Request<T, TR>(RequestParams<T> @params)
+        public async Task<TR> Request<T, TR>(RequestParams<T> @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidRequest(@params);
+            var chainId = @params.ChainId;
+            var request = @params.Request;
+            var topic = @params.Topic;
+            HandleSessionRequestMessageType<T, TR>();
+            
+            var id = await PrivateThis.SendRequest<SessionRequest<T>, TR>(topic, new SessionRequest<T>()
+            {
+                ChainId = chainId,
+                Request = request
+            });
+            
+            var taskSource = new TaskCompletionSource<TR>();
+            this.Events.ListenForOnce<JsonRpcResponse<TR>>($"session_request{id}", (sender, e) =>
+            {
+                if (e.EventData.IsError)
+                    taskSource.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                else
+                    taskSource.SetResult(e.EventData.Result);
+            });
+
+            return await taskSource.Task;
         }
 
-        public Task Respond<TR>(RespondParams<TR> @params)
+        public async Task Respond<T, TR>(RespondParams<TR> @params) where T : IWcMethod
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidRespond(@params);
+            var topic = @params.Topic;
+            var response = @params.Response;
+            var id = response.Id;
+            if (response.IsError)
+            {
+                await PrivateThis.SendError<T, TR>(id, topic, response.Error);
+            }
+            else
+            {
+                await PrivateThis.SendResult<T, TR>(id, topic, response.Result);
+            }
         }
 
-        public Task Emit<T>(EmitParams<T> @params)
+        public async Task Emit<T>(EmitParams<T> @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            var topic = @params.Topic;
+            var @event = @params.Event;
+            var chainId = @params.ChainId;
+            await PrivateThis.SendRequest<SessionEvent<T>, object>(topic, new SessionEvent<T>()
+            {
+                ChainId = chainId,
+                Event = @event
+            });
         }
 
-        public Task Ping(PingParams @params)
+        public async Task Ping(PingParams @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidPing(@params);
+
+            var topic = @params.Topic;
+            if (this.Client.Session.Keys.Contains(topic))
+            {
+                var id = await PrivateThis.SendRequest<SessionPing, bool>(topic, new SessionPing());
+                var done = new TaskCompletionSource<bool>();
+                this.Events.ListenForOnce<JsonRpcResponse<bool>>($"session_ping{id}", (sender, e) =>
+                {
+                    if (e.EventData.IsError)
+                        done.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                    else
+                        done.SetResult(e.EventData.Result);
+                });
+                await done.Task;
+            } 
+            else if (this.Client.Pairing.Keys.Contains(topic))
+            {
+                var id = await PrivateThis.SendRequest<PairingPing, bool>(topic, new PairingPing());
+                var done = new TaskCompletionSource<bool>();
+                this.Events.ListenForOnce<JsonRpcResponse<bool>>($"pairing_ping{id}", (sender, e) =>
+                {
+                    if (e.EventData.IsError)
+                        done.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                    else
+                        done.SetResult(e.EventData.Result);
+                });
+                await done.Task;
+            }
         }
 
-        public Task Disconnect(DisconnectParams @params)
+        public async Task Disconnect(DisconnectParams @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            await PrivateThis.IsValidDisconnect(@params);
+            var topic = @params.Topic;
+            
+            var error = ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED);
+            if (this.Client.Session.Keys.Contains(topic))
+            {
+                await PrivateThis.SendRequest<SessionDelete, bool>(topic, new SessionDelete()
+                {
+                    Code = error.Code,
+                    Message = error.Message,
+                    Data = error.Data
+                });
+                await PrivateThis.DeleteSession(topic);
+            } 
+            else if (this.Client.Pairing.Keys.Contains(topic))
+            {
+                await PrivateThis.SendRequest<PairingDelete, bool>(topic, new PairingDelete()
+                {
+                    Code = error.Code,
+                    Data = error.Data,
+                    Message = error.Message
+                });
+                await PrivateThis.DeletePairing(topic);
+            }
+        }
+
+        private bool HasOverlap(string[] a, string[] b)
+        {
+            var matches = a.Where(x => b.Contains(x));
+            return matches.Count() == a.Length;
+        }
+
+        private string[] GetAccountsChains(string[] accounts)
+        {
+            List<string> chains = new List<string>();
+            foreach (var account in accounts)
+            {
+                var values = account.Split(":");
+                var chain = values[0];
+                var chainId = values[1];
+                
+                chains.Add($"{chain}:{chainId}");
+            }
+
+            return chains.ToArray();
+        }
+
+        private bool IsSessionCompatible(SessionStruct session, FindParams @params)
+        {
+            var requiredNamespaces = @params.RequiredNamespaces;
+            var compatible = true;
+
+            var sessionKeys = session.Namespaces.Keys.ToArray();
+            var paramsKeys = requiredNamespaces.Keys.ToArray();
+
+            if (!HasOverlap(paramsKeys, sessionKeys)) return false;
+
+            foreach (var key in sessionKeys)
+            {
+                var value = session.Namespaces[key];
+                var accounts = value.Accounts;
+                var methods = value.Methods;
+                var events = value.Events;
+                var extension = value.Extension;
+                var chains = GetAccountsChains(accounts);
+                var requiredNamespace = requiredNamespaces[key];
+
+                if (!HasOverlap(requiredNamespace.Chains, chains) ||
+                    !HasOverlap(requiredNamespace.Methods, methods) ||
+                    !HasOverlap(requiredNamespace.Events, events))
+                    compatible = false;
+
+                if (compatible && extension != null && extension.Length > 0)
+                {
+                    foreach (var extensionNamespace in extension)
+                    {
+                        var extAccounts = extensionNamespace.Accounts;
+                        var extMethods = extensionNamespace.Methods;
+                        var extEvents = extensionNamespace.Events;
+                        var extChains = GetAccountsChains(extAccounts);
+                        var overlap = false;
+
+                        if (requiredNamespace.Extension != null)
+                            overlap = requiredNamespace.Extension.Any(re =>
+                                HasOverlap(re.Chains, extChains) && HasOverlap(re.Methods, extMethods) &&
+                                HasOverlap(re.Events, extEvents));
+
+                        if (!overlap) compatible = false;
+                    }
+                }
+            }
+
+            return compatible;
         }
 
         public SessionStruct[] Find(FindParams @params)
         {
-            throw new System.NotImplementedException();
+            IsInitialized();
+            return this.Client.Session.Values.Where(s => IsSessionCompatible(s, @params)).ToArray();
         }
     }
 }

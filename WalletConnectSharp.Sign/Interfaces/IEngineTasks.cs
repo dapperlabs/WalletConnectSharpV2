@@ -6,7 +6,7 @@ namespace WalletConnectSharp.Sign.Interfaces
 {
     public interface IEngineTasks
     {
-        Task<IConnectedData> Connect(ConnectParams @params);
+        Task<ConnectedData> Connect(ConnectParams @params);
 
         Task<PairingStruct> Pair(PairParams pairParams);
 
@@ -20,7 +20,7 @@ namespace WalletConnectSharp.Sign.Interfaces
 
         Task<TR> Request<T, TR>(RequestParams<T> @params);
 
-        Task Respond<TR>(RespondParams<TR> @params);
+        Task Respond<T, TR>(RespondParams<TR> @params) where T : IWcMethod;
 
         Task Emit<T>(EmitParams<T> @params);
 

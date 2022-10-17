@@ -8,9 +8,9 @@ namespace WalletConnectSharp.Sign.Models
         public string[] Accounts { get; set; }
         
         [JsonProperty("methods")]
-        public string Methods { get; set; }
+        public string[] Methods { get; set; }
         
         [JsonProperty("events")]
-        public string Events { get; set; }
+        public string[] Events { get; set; }
     }
 }
