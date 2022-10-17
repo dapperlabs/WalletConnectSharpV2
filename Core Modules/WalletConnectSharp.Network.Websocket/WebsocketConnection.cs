@@ -112,13 +112,13 @@ namespace WalletConnectSharp.Network.Websocket
                 Events.ListenForOnce("register_error",
                     delegate(object sender, GenericEvent<Exception> @event)
                     {
-                        registeringTask.SetException(@event.Response);
+                        registeringTask.SetException(@event.EventData);
                     });
                 
                 Events.ListenForOnce("open",
                     delegate(object sender, GenericEvent<WebsocketClient> @event)
                     {
-                        registeringTask.SetResult(@event.Response);
+                        registeringTask.SetResult(@event.EventData);
                     });
 
                 await registeringTask.Task;

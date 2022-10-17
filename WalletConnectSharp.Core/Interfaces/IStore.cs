@@ -4,7 +4,7 @@ using WalletConnectSharp.Network.Models;
 
 namespace WalletConnectSharp.Core.Interfaces
 {
-    public interface IStore<TKey, TValue> : IModule
+    public interface IStore<TKey, TValue> : IModule where TValue : IKeyHolder<TKey>
     {
         public int Length { get; }
         
@@ -17,8 +17,6 @@ namespace WalletConnectSharp.Core.Interfaces
         public Task Set(TKey key, TValue value);
 
         public TValue Get(TKey key);
-        
-        //public TValue GetAll()
 
         public Task Update(TKey key, TValue update);
 

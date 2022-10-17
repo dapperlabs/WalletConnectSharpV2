@@ -4,6 +4,9 @@ namespace WalletConnectSharp.Common
     {
         // 0 (Generic)
         GENERIC = 0,
+        
+        // 10 (Internal)
+        NON_CONFORMING_NAMESPACES = 9,
 
         // 1000 (Internal)
         MISSING_OR_INVALID = 1000,
@@ -59,7 +62,7 @@ namespace WalletConnectSharp.Common
         UNSUPPORTED_CHAINS = 5100,
         UNSUPPORTED_JSONRPC = 5101,
         UNSUPPORTED_NOTIFICATION = 5102,
-        UNSUPPORTED_SIGNAL = 5103,
+        UNSUPPORTED_ACCOUNTS = 5103,
         USER_DISCONNECTED = 5900,
 
         // 9000 (Unknown)

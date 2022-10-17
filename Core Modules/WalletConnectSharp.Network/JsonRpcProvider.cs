@@ -145,7 +145,7 @@ namespace WalletConnectSharp.Network
             Events.ListenForAndDeserialize<JsonRpcResponse<TR>>(request.Id.ToString(),
                 delegate(object sender, GenericEvent<JsonRpcResponse<TR>> @event)
                 {
-                    var result = @event.Response;
+                    var result = @event.EventData;
 
                     if (result.Error != null)
                     {
@@ -159,7 +159,7 @@ namespace WalletConnectSharp.Network
             
             Events.ListenFor(request.Id.ToString(), delegate(object sender, GenericEvent<Exception> @event)
             {
-                var exception = @event.Response;
+                var exception = @event.EventData;
                 if (exception != null)
                 {
                     requestTask.SetException(exception);
@@ -186,17 +186,17 @@ namespace WalletConnectSharp.Network
 
         private void OnConnectionError(object sender, GenericEvent<Exception> e)
         {
-            Events.Trigger(ProviderEvents.Error, e.Response);
+            Events.Trigger(ProviderEvents.Error, e.EventData);
         }
 
         private void OnConnectionDisconnected(object sender, GenericEvent<object> e)
         {
-            Events.TriggerType(ProviderEvents.Disconnect, e.Response, e.Response.GetType());
+            Events.TriggerType(ProviderEvents.Disconnect, e.EventData, e.EventData.GetType());
         }
 
         private void OnPayload(object sender, GenericEvent<string> e)
         {
-            var json = e.Response;
+            var json = e.EventData;
 
             var payload = JsonConvert.DeserializeObject<JsonRpcPayload>(json);
 

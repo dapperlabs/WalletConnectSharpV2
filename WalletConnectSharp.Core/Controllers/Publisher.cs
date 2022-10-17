@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models.Heartbeat;
 using WalletConnectSharp.Core.Models.Publisher;
@@ -64,8 +65,8 @@ namespace WalletConnectSharp.Core.Controllers
             this.queue.Remove(hash);
         }
 
-        protected Task RpcPublish(string topic, string message, int ttl, ProtocolOptions relay, bool prompt = false,
-            int? tag = null)
+        protected Task RpcPublish(string topic, string message, long ttl, ProtocolOptions relay, bool prompt = false,
+            long? tag = null)
         {
             var api = RelayProtocols.GetRelayProtocol(relay.Protocol);
             var request = new RequestArguments<RelayPublishParams>()
@@ -96,8 +97,18 @@ namespace WalletConnectSharp.Core.Controllers
                         Protocol = RelayProtocols.Default
                     },
                     Tag = 0,
-                    TTL = 21600 // 6 hours
+                    TTL = Clock.SIX_HOURS,
                 };
+            }
+            else
+            {
+                if (opts.Relay == null)
+                {
+                    opts.Relay = new ProtocolOptions()
+                    {
+                        Protocol = RelayProtocols.Default
+                    };
+                }
             }
 
             var @params = new PublishParams()

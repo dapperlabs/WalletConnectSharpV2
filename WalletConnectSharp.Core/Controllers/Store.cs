@@ -115,8 +115,38 @@ namespace WalletConnectSharp.Core.Controllers
         {
             IsInitialized();
             
-            // Partial updates aren't allowed in C#
-            // So Update will just replace the value
+            // Partial updates aren't built into C#
+            // However, we can use reflection to sort of
+            // get the same thing
+            try
+            {
+                // First, we check if we even have a value to reference
+                var previousValue = Get(key);
+
+                // Find all properties the type TKey has
+                Type t = typeof(TValue);
+                var properties = t.GetProperties().Where(prop => prop.CanRead && prop.CanWrite);
+
+                // Loop through all of them
+                foreach (var prop in properties)
+                {
+                    // Grab the updated value
+                    var @value = prop.GetValue(update, null);
+                    // If it exists (its not null), then set it
+                    if (@value != null)
+                    {
+                        prop.SetValue(previousValue, null);
+                    }
+                }
+                
+                // Now, set the update variable to be the new modified 
+                // previousValue object
+                update = previousValue;
+            }
+            catch (WalletConnectException e)
+            {
+                // ignored if no previous value exists
+            }
 
             map.Remove(key);
             map.Add(key, update);

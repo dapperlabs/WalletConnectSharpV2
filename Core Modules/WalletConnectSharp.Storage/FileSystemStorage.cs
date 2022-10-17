@@ -52,7 +52,7 @@ namespace WalletConnectSharp.Storage
                 Directory.CreateDirectory(path);
             }
             
-            var json = JsonConvert.SerializeObject(_entries, new JsonSerializerSettings()
+            var json = JsonConvert.SerializeObject(Entries, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.All
             });
@@ -66,7 +66,7 @@ namespace WalletConnectSharp.Storage
                 return;
             
             var json = await File.ReadAllTextAsync(FilePath, Encoding.UTF8);
-            _entries = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, new JsonSerializerSettings()
+            Entries = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.Auto
             });

@@ -11,12 +11,12 @@ namespace WalletConnectSharp.Core.Models.Relay
         public string Message { get; set; }
         
         [JsonProperty("ttl")]
-        public int TTL { get; set; }
+        public long TTL { get; set; }
         
         [JsonProperty("prompt")]
         public bool Prompt { get; set; }
         
         [JsonProperty("tag")]
-        public int? Tag { get; set; }
+        public long? Tag { get; set; }
     }
 }

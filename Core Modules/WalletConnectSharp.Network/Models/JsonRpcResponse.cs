@@ -26,6 +26,15 @@ namespace WalletConnectSharp.Network.Models
         [JsonProperty("result", NullValueHandling = NullValueHandling.Ignore)]
         public T Result { get; set; }
 
+        [JsonIgnore]
+        public bool IsError
+        {
+            get
+            {
+                return Error != null;
+            }
+        }
+
         public JsonRpcResponse()
         {
         }

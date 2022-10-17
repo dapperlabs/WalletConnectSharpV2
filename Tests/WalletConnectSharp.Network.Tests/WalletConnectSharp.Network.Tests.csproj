@@ -22,8 +22,6 @@
       <ProjectReference Include="..\..\Core Modules\WalletConnectSharp.Events\WalletConnectSharp.Events.csproj" />
       <ProjectReference Include="..\..\Core Modules\WalletConnectSharp.Network.Websocket\WalletConnectSharp.Network.Websocket.csproj" />
       <ProjectReference Include="..\..\Core Modules\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
-      <ProjectReference Include="..\..\Core\WalletConnectSharp.Network.Websocket\WalletConnectSharp.Network.Websocket.csproj" />
-      <ProjectReference Include="..\..\Core\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
     </ItemGroup>
 
 </Project>

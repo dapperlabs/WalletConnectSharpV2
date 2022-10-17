@@ -1,7 +1,10 @@
+using Newtonsoft.Json;
+
 namespace WalletConnectSharp.Core.Interfaces
 {
-    public class IKeyHolder<TKey>
+    public interface IKeyHolder<TKey>
     {
+        [JsonIgnore]
         public TKey Key { get; }
     }
 }

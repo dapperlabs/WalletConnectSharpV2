@@ -22,7 +22,9 @@ namespace WalletConnectSharp.Network.Models
         public string JsonRPC { get; set; }
         
         [JsonExtensionData]
+#pragma warning disable CS0649
         private IDictionary<string, JToken> _extraStuff;
+#pragma warning restore CS0649
 
         /// <summary>
         /// Get the method for this payload, if this payload is a request.
