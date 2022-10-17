@@ -57,7 +57,7 @@ namespace WalletConnectSharp.Sign.Interfaces
 
         internal Task OnPairingDeleteRequest(string topic, JsonRpcRequest<PairingDelete> payload);
 
-        internal Task OnSessionRequest<T>(string topic, JsonRpcRequest<SessionRequest<T>> payload);
+        internal Task OnSessionRequest<T, TR>(string topic, JsonRpcRequest<SessionRequest<T>> payload);
 
         internal Task OnSessionRequestResponse<T>(string topic, JsonRpcResponse<T> payload);
 

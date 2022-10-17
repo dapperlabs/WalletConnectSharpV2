@@ -25,6 +25,7 @@ namespace WalletConnectSharp.Sign
     public class Engine : IEnginePrivate, IEngine, IModule
     {
         private const long ProposalExpiry = Clock.THIRTY_DAYS;
+        private const long SessionExpiry = Clock.SEVEN_DAYS;
         
         private EventDelegator Events;
 
@@ -94,7 +95,7 @@ namespace WalletConnectSharp.Sign
         {
             // Register all Request Types
             HandleMessageType<PairingDelete, bool>(PrivateThis.OnPairingDeleteRequest, null);
-            HandleMessageType<PairingPing, bool>(PrivateThis.OnPairingPingRequest, PrivateThis.OnSessionRequestResponse);
+            HandleMessageType<PairingPing, bool>(PrivateThis.OnPairingPingRequest, PrivateThis.OnPairingPingResponse);
             HandleMessageType<SessionPropose, SessionProposeResponse>(PrivateThis.OnSessionProposeRequest, PrivateThis.OnSessionProposeResponse);
             HandleMessageType<SessionSettle, bool>(PrivateThis.OnSessionSettleRequest, PrivateThis.OnSessionSettleResponse);
             HandleMessageType<SessionUpdate, bool>(PrivateThis.OnSessionUpdateRequest, PrivateThis.OnSessionUpdateResponse);
@@ -127,6 +128,11 @@ namespace WalletConnectSharp.Sign
         }
 
         // TODO Deal with later?
+        public void HandleSessionRequestMessageType<T, TR>()
+        {
+            HandleMessageType<SessionRequest<T>, TR>((s, request) => PrivateThis.OnSessionRequest<T, TR>(s, request), (s, response) => PrivateThis.OnSessionRequestResponse<TR>(s, response));
+        }
+        
         public void HandleSessionRequestMessageType<T, TR>(Func<string, JsonRpcRequest<SessionRequest<T>>, Task> requestCallback, Func<string, JsonRpcResponse<TR>, Task> responseCallback)
         {
             HandleMessageType(requestCallback, responseCallback);
@@ -412,83 +418,316 @@ namespace WalletConnectSharp.Sign
             }
             else
             {
-                
+                var result = payload.Result;
+                var proposal = this.Client.Proposal.Get(id);
+                var selfPublicKey = proposal.Proposer.PublicKey;
+                var peerPublicKey = result.ResponderPublicKey;
+
+                var sessionTopic = await this.Client.Core.Crypto.GenerateSharedKey(
+                    selfPublicKey,
+                    peerPublicKey
+                );
+                var subscriptionId = await this.Client.Core.Relayer.Subscribe(sessionTopic);
+                await PrivateThis.ActivatePairing(topic);
             }
         }
 
-        Task IEnginePrivate.OnSessionSettleRequest(string topic, JsonRpcRequest<SessionSettle> payload)
+        async Task IEnginePrivate.OnSessionSettleRequest(string topic, JsonRpcRequest<SessionSettle> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            var @params = payload.Params;
+            try
+            {
+                await PrivateThis.IsValidSessionSettleRequest(@params);
+                var relay = @params.Relay;
+                var controller = @params.Controller;
+                var expiry = @params.Expiry;
+                var namespaces = @params.Namespaces;
+
+                var session = new SessionStruct()
+                {
+                    Topic = topic,
+                    Relay = relay,
+                    Expiry = expiry,
+                    Namespaces = namespaces,
+                    Acknowledged = true,
+                    Controller = controller.PublicKey,
+                    Self = new Participant()
+                    {
+                        Metadata = this.Client.Metadata,
+                        PublicKey = ""
+                    },
+                    Peer = new Participant()
+                    {
+                        PublicKey = controller.PublicKey,
+                        Metadata = controller.Metadata
+                    }
+                };
+                await PrivateThis.SendResult<SessionSettle, bool>(payload.Id, topic, true);
+                this.Events.Trigger("session_connect", session);
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<SessionSettle, bool>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnSessionSettleResponse(string topic, JsonRpcResponse<bool> payload)
+        async Task IEnginePrivate.OnSessionSettleResponse(string topic, JsonRpcResponse<bool> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            if (payload.IsError)
+            {
+                await this.Client.Session.Delete(topic, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED));
+                this.Events.Trigger($"session_approve{id}", payload);
+            }
+            else
+            {
+                await this.Client.Session.Update(topic, new SessionStruct()
+                {
+                    Acknowledged = true
+                });
+                this.Events.Trigger($"session_approve{id}", payload); 
+            }
         }
 
-        Task IEnginePrivate.OnSessionUpdateRequest(string topic, JsonRpcRequest<SessionUpdate> payload)
+        async Task IEnginePrivate.OnSessionUpdateRequest(string topic, JsonRpcRequest<SessionUpdate> payload)
         {
-            throw new System.NotImplementedException();
+            var @params = payload.Params;
+            var id = payload.Id;
+            try
+            {
+                await PrivateThis.IsValidUpdate(new UpdateParams()
+                {
+                    Namespaces = @params.Namespaces,
+                    Topic = topic
+                });
+
+                await this.Client.Session.Update(topic, new SessionStruct()
+                {
+                    Namespaces = @params.Namespaces
+                });
+
+                await PrivateThis.SendResult<SessionUpdate, bool>(id, topic, true);
+                this.Client.Events.Trigger("session_update", new SessionUpdateEvent()
+                {
+                    Id = id,
+                    Topic = topic,
+                    Params = @params
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<SessionUpdate, bool>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnSessionUpdateResponse(string topic, JsonRpcResponse<bool> payload)
+        async Task IEnginePrivate.OnSessionUpdateResponse(string topic, JsonRpcResponse<bool> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            this.Events.Trigger($"session_update{id}", payload);
         }
 
-        Task IEnginePrivate.OnSessionExtendRequest(string topic, JsonRpcRequest<SessionExtend> payload)
+        async Task IEnginePrivate.OnSessionExtendRequest(string topic, JsonRpcRequest<SessionExtend> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            try
+            {
+                await PrivateThis.IsValidExtend(new ExtendParams()
+                {
+                    Topic = topic
+                });
+                await PrivateThis.SetExpiry(topic, Clock.CalculateExpiry(SessionExpiry));
+                await PrivateThis.SendResult<SessionExtend, bool>(id, topic, true);
+                this.Client.Events.Trigger("session_extend", new SessionEvent()
+                {
+                    Id = id,
+                    Topic = topic
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<SessionExtend, bool>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnSessionExtendResponse(string topic, JsonRpcResponse<bool> payload)
+        async Task IEnginePrivate.OnSessionExtendResponse(string topic, JsonRpcResponse<bool> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            this.Events.Trigger($"session_extend{id}", payload);
         }
 
-        Task IEnginePrivate.OnSessionPingRequest(string topic, JsonRpcRequest<SessionPing> payload)
+        async Task IEnginePrivate.OnSessionPingRequest(string topic, JsonRpcRequest<SessionPing> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            try
+            {
+                await PrivateThis.IsValidPing(new PingParams()
+                {
+                    Topic = topic
+                });
+                await PrivateThis.SendResult<SessionPing, bool>(id, topic, true);
+                this.Client.Events.Trigger("session_ping", new SessionEvent()
+                {
+                    Id = id,
+                    Topic = topic
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<SessionPing, bool>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnSessionPingResponse(string topic, JsonRpcResponse<bool> payload)
+        async Task IEnginePrivate.OnSessionPingResponse(string topic, JsonRpcResponse<bool> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            
+            // put at the end of the stack to avoid a race condition
+            // where session_ping listener is not yet initialized
+            await Task.Delay(500);
+
+            this.Events.Trigger($"session_ping{id}", payload);
         }
 
-        Task IEnginePrivate.OnPairingPingRequest(string topic, JsonRpcRequest<PairingPing> payload)
+        async Task IEnginePrivate.OnPairingPingRequest(string topic, JsonRpcRequest<PairingPing> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            try
+            {
+                await PrivateThis.IsValidPing(new PingParams()
+                {
+                    Topic = topic
+                });
+
+                await PrivateThis.SendResult<PairingPing, bool>(id, topic, true);
+                this.Client.Events.Trigger("pairing_ping", new SessionEvent()
+                {
+                    Topic = topic,
+                    Id = id
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<PairingPing, bool>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnPairingPingResponse(string topic, JsonRpcResponse<bool> payload)
+        async Task IEnginePrivate.OnPairingPingResponse(string topic, JsonRpcResponse<bool> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            
+            // put at the end of the stack to avoid a race condition
+            // where session_ping listener is not yet initialized
+            await Task.Delay(500);
+
+            this.Events.Trigger($"session_ping{id}", payload);
         }
 
-        Task IEnginePrivate.OnSessionDeleteRequest(string topic, JsonRpcRequest<SessionDelete> payload)
+        async Task IEnginePrivate.OnSessionDeleteRequest(string topic, JsonRpcRequest<SessionDelete> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            try
+            {
+                await PrivateThis.IsValidDisconnect(new DisconnectParams()
+                {
+                    Topic = topic,
+                    Reason = payload.Params
+                });
+
+                await PrivateThis.SendResult<SessionDelete, bool>(id, topic, true);
+                await PrivateThis.DeleteSession(topic);
+                this.Client.Events.Trigger("session_delete", new SessionEvent()
+                {
+                    Topic = topic,
+                    Id = id
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<SessionDelete, bool>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnPairingDeleteRequest(string topic, JsonRpcRequest<PairingDelete> payload)
+        async Task IEnginePrivate.OnPairingDeleteRequest(string topic, JsonRpcRequest<PairingDelete> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            try
+            {
+                await PrivateThis.IsValidDisconnect(new DisconnectParams()
+                {
+                    Topic = topic,
+                    Reason = payload.Params
+                });
+
+                await PrivateThis.SendResult<PairingDelete, bool>(id, topic, true);
+                await PrivateThis.DeletePairing(topic);
+                this.Client.Events.Trigger("pairing_delete", new SessionEvent()
+                {
+                    Topic = topic,
+                    Id = id
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<PairingDelete, bool>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnSessionRequest<T>(string topic, JsonRpcRequest<SessionRequest<T>> payload)
+        async Task IEnginePrivate.OnSessionRequest<T, TR>(string topic, JsonRpcRequest<SessionRequest<T>> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            var @params = payload.Params;
+            try
+            {
+                await PrivateThis.IsValidRequest(new RequestParams<T>()
+                {
+                    Topic = topic,
+                    ChainId = @params.ChainId,
+                    Request = @params.Request
+                });
+                this.Client.Events.Trigger("session_request", new SessionRequestEvent<T>()
+                {
+                    Topic = topic,
+                    Id = id,
+                    ChainId = @params.ChainId,
+                    Request = @params.Request
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<SessionRequest<T>, TR>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
-        Task IEnginePrivate.OnSessionRequestResponse<T>(string topic, JsonRpcResponse<T> payload)
+        async Task IEnginePrivate.OnSessionRequestResponse<T>(string topic, JsonRpcResponse<T> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            this.Events.Trigger($"session_request{id}", payload);
         }
 
-        Task IEnginePrivate.OnSessionEventRequest<T>(string topic, JsonRpcRequest<SessionEvent<T>> payload)
+        async Task IEnginePrivate.OnSessionEventRequest<T>(string topic, JsonRpcRequest<SessionEvent<T>> payload)
         {
-            throw new System.NotImplementedException();
+            var id = payload.Id;
+            var @params = payload.Params;
+            try
+            {
+                await PrivateThis.IsValidEmit(new EmitParams<T>()
+                {
+                    Topic = topic,
+                    ChainId = @params.ChainId,
+                    Event = @params.Event
+                });
+                this.Client.Events.Trigger("session_event", new EmitEvent<T>()
+                {
+                    Topic = topic,
+                    Id = id,
+                    Params = @params
+                });
+            }
+            catch (WalletConnectException e)
+            {
+                await PrivateThis.SendError<SessionEvent<T>, object>(id, topic, ErrorResponse.FromException(e));
+            }
         }
 
         async Task IEnginePrivate.IsValidConnect(ConnectParams @params)
@@ -631,7 +870,8 @@ namespace WalletConnectSharp.Sign
             if (string.IsNullOrEmpty(topic))
             {
                 var pairing = this.Client.Pairing.Get(topic);
-                active = pairing.Active;
+                if (pairing.Active != null)
+                    active = pairing.Active.Value;
             }
 
             if (!string.IsNullOrEmpty(topic) || !active)
@@ -639,7 +879,6 @@ namespace WalletConnectSharp.Sign
                 CreatePairingData CreatePairing = await this.CreatePairing();
                 topic = CreatePairing.Topic;
                 uri = CreatePairing.Uri;
-
             }
             
             

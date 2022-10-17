@@ -10,6 +10,6 @@ namespace WalletConnectSharp.Sign.Models
         public ICore Core { get; set; }
         
         [JsonProperty("metadata")]
-        public SignClientMetadata Metadata { get; set; }
+        public Metadata Metadata { get; set; }
     }
 }

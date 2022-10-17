@@ -7,7 +7,7 @@ namespace WalletConnectSharp.Sign.Interfaces
 {
     public interface ISignClient : IModule, IEvents, IEngineTasks
     {
-        SignClientMetadata Metadata { get; }
+        Metadata Metadata { get; }
         
         ICore Core { get; }
         
