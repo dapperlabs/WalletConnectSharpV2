@@ -808,59 +808,59 @@ namespace WalletConnectSharp.Sign
             }
         }
 
-        Task IEnginePrivate.IsValidPair(PairParams pairParams)
+        async Task IEnginePrivate.IsValidPair(PairParams pairParams)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidSessionSettleRequest(SessionSettle settle)
+        async Task IEnginePrivate.IsValidSessionSettleRequest(SessionSettle settle)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidApprove(ApproveParams @params)
+        async Task IEnginePrivate.IsValidApprove(ApproveParams @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidReject(RejectParams @params)
+        async Task IEnginePrivate.IsValidReject(RejectParams @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidUpdate(UpdateParams @params)
+        async Task IEnginePrivate.IsValidUpdate(UpdateParams @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidExtend(ExtendParams @params)
+        async Task IEnginePrivate.IsValidExtend(ExtendParams @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidRequest<T>(RequestParams<T> @params)
+        async Task IEnginePrivate.IsValidRequest<T>(RequestParams<T> @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidRespond<T>(RespondParams<T> @params)
+        async Task IEnginePrivate.IsValidRespond<T>(RespondParams<T> @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidPing(PingParams @params)
+        async Task IEnginePrivate.IsValidPing(PingParams @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidEmit<T>(EmitParams<T> @params)
+        async Task IEnginePrivate.IsValidEmit<T>(EmitParams<T> @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
-        Task IEnginePrivate.IsValidDisconnect(DisconnectParams @params)
+        async Task IEnginePrivate.IsValidDisconnect(DisconnectParams @params)
         {
-            throw new System.NotImplementedException();
+            // TODO Implement
         }
 
         private UriParameters ParseUri(string uri)
