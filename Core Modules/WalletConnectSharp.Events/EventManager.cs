@@ -16,6 +16,8 @@ namespace WalletConnectSharp.Events
         private static Dictionary<string, EventManager<T, TEventArgs>> _instances =
             new Dictionary<string, EventManager<T, TEventArgs>>();
 
+        private static readonly object _managerLock = new object();
+
         /// <summary>
         /// The current EventTriggers this EventManager has 
         /// </summary>
@@ -36,10 +38,13 @@ namespace WalletConnectSharp.Events
         /// </summary>
         public static EventManager<T, TEventArgs> InstanceOf(string context)
         {
-            if (!_instances.ContainsKey(context))
-                _instances.Add(context, new EventManager<T, TEventArgs>(context));
+            lock (_managerLock)
+            {
+                if (!_instances.ContainsKey(context))
+                    _instances.Add(context, new EventManager<T, TEventArgs>(context));
 
-            return _instances[context];
+                return _instances[context];
+            }
         }
 
         private void CallbackBeforeExecuted(object sender, TEventArgs e)

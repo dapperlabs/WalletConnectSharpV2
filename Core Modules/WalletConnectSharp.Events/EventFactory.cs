@@ -11,7 +11,7 @@ namespace WalletConnectSharp.Events
     public class EventFactory<T>
     {
         private static Dictionary<string, EventFactory<T>> _eventFactories = new Dictionary<string, EventFactory<T>>();
-
+        private static readonly object _factoryLock = new object();
         private IEventProvider<T> _eventProvider;
         public string Context { get; private set; }
 
@@ -25,10 +25,13 @@ namespace WalletConnectSharp.Events
         /// </summary>
         public static EventFactory<T> InstanceOf(string context)
         {
-            if (!_eventFactories.ContainsKey(context))
-                _eventFactories.Add(context, new EventFactory<T>(context));
+            lock (_factoryLock)
+            {
+                if (!_eventFactories.ContainsKey(context))
+                    _eventFactories.Add(context, new EventFactory<T>(context));
 
-            return _eventFactories[context];
+                return _eventFactories[context];
+            }
         }
         
         /// <summary>

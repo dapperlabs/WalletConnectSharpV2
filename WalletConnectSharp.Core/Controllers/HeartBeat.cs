@@ -53,7 +53,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             HeartBeatCancellationToken = new CancellationToken();
 
-            return Task.Run(async () =>
+            Task.Run(async () =>
             {
                 while (!HeartBeatCancellationToken.IsCancellationRequested)
                 {
@@ -62,6 +62,8 @@ namespace WalletConnectSharp.Core.Controllers
                     await Task.Delay(Interval, HeartBeatCancellationToken);
                 }
             }, HeartBeatCancellationToken);
+
+            return Task.CompletedTask;
         }
 
         private void Pulse()

@@ -8,7 +8,7 @@ namespace WalletConnectSharp.Sign.Controllers
     {
         public class JsonRpcHistoryHolder<T, TR>
         {
-            private static Dictionary<string, JsonRpcHistoryHolder<T, TR>> _instance;
+            private static Dictionary<string, JsonRpcHistoryHolder<T, TR>> _instance = new Dictionary<string, JsonRpcHistoryHolder<T, TR>>();
 
             public static async Task<JsonRpcHistoryHolder<T, TR>> InstanceForContext(ICore core)
             {

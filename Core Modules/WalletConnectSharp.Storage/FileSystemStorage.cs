@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using WalletConnectSharp.Storage.Interfaces;
 
 namespace WalletConnectSharp.Storage
 {
     public class FileSystemStorage : InMemoryStorage
     {
         public string FilePath { get; private set; }
+        private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
         
         public FileSystemStorage(string filePath = null)
         {
@@ -56,16 +56,21 @@ namespace WalletConnectSharp.Storage
             {
                 TypeNameHandling = TypeNameHandling.All
             });
-
+            
+            await _semaphoreSlim.WaitAsync();
             await File.WriteAllTextAsync(FilePath, json, Encoding.UTF8);
+            _semaphoreSlim.Release();
         }
 
         private async void Load()
         {
             if (!File.Exists(FilePath))
                 return;
-            
+
+            await _semaphoreSlim.WaitAsync();
             var json = await File.ReadAllTextAsync(FilePath, Encoding.UTF8);
+            _semaphoreSlim.Release();
+            
             Entries = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.Auto

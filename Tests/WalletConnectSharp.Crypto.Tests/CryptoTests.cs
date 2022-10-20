@@ -1,3 +1,4 @@
+using WalletConnectSharp.Crypto.Models;
 using WalletConnectSharp.Crypto.Tests.Models;
 using Xunit;
 
@@ -45,7 +46,11 @@ namespace WalletConnectSharp.Crypto.Tests
             
             Assert.Equal(symKeyA, symKeyB);
 
-            var encrypted = await PeerA.Encrypt(symKeyA, message);
+            var encrypted = await PeerA.Encrypt(new EncryptParams()
+            {
+                SymKey = symKeyA,
+                Message = message
+            });
             var decrypted = await PeerB.Decrypt(symKeyB, encrypted);
 
             Assert.NotEqual(encrypted, message);

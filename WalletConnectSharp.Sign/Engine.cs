@@ -26,7 +26,7 @@ namespace WalletConnectSharp.Sign
         
         private EventDelegator Events;
 
-        private bool initialized = false;
+        private bool _initialized = false;
         
         public ISignClient Client { get; }
 
@@ -50,12 +50,12 @@ namespace WalletConnectSharp.Sign
 
         public async Task Init()
         {
-            if (!this.initialized)
+            if (!this._initialized)
             {
                 await PrivateThis.Cleanup();
                 this.RegisterRelayerEvents();
                 this.RegisterExpirerEvents();
-                this.initialized = true;
+                this._initialized = true;
             }
         }
 
@@ -762,21 +762,20 @@ namespace WalletConnectSharp.Sign
         {
             this.IsInitialized();
             await PrivateThis.IsValidConnect(@params);
-            var pairingTopic = @params.PairingTopic;
             var requiredNamespaces = @params.RequiredNamespaces;
             var relays = @params.Relays;
             var topic = @params.PairingTopic;
             string uri = "";
             var active = false;
 
-            if (string.IsNullOrEmpty(topic))
+            if (!string.IsNullOrEmpty(topic))
             {
                 var pairing = this.Client.Pairing.Get(topic);
                 if (pairing.Active != null)
                     active = pairing.Active.Value;
             }
 
-            if (!string.IsNullOrEmpty(topic) || !active)
+            if (string.IsNullOrEmpty(topic) || !active)
             {
                 CreatePairingData CreatePairing = await this.CreatePairing();
                 topic = CreatePairing.Topic;

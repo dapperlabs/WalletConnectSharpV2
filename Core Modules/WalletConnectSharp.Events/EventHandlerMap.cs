@@ -12,6 +12,8 @@ namespace WalletConnectSharp.Events
         private Dictionary<string, EventHandler<TEventArgs>> mapping =
             new Dictionary<string, EventHandler<TEventArgs>>();
 
+        private readonly object _mappingLock = new object();
+
         private EventHandler<TEventArgs> BeforeEventExecuted;
 
         /// <summary>
@@ -41,21 +43,27 @@ namespace WalletConnectSharp.Events
         {
             get
             {
-                if (!mapping.ContainsKey(eventId))
+                lock (_mappingLock)
                 {
-                    mapping.Add(eventId, BeforeEventExecuted);
+                    if (!mapping.ContainsKey(eventId))
+                    {
+                        mapping.Add(eventId, BeforeEventExecuted);
+                    }
+
+                    return mapping[eventId];
                 }
-                
-                return mapping[eventId];
             }
             set
             {
-                if (mapping.ContainsKey(eventId))
+                lock (_mappingLock)
                 {
-                    mapping.Remove(eventId);
+                    if (mapping.ContainsKey(eventId))
+                    {
+                        mapping.Remove(eventId);
+                    }
+
+                    mapping.Add(eventId, value);
                 }
-                
-                mapping.Add(eventId, value);
             }
         }
 
@@ -66,14 +74,20 @@ namespace WalletConnectSharp.Events
         /// <returns>true if the eventId has any EventHandlers, false otherwise</returns>
         public bool Contains(string eventId)
         {
-            return mapping.ContainsKey(eventId);
+            lock (_mappingLock)
+            {
+                return mapping.ContainsKey(eventId);
+            }
         }
 
         public void Clear(string eventId)
         {
-            if (mapping.ContainsKey(eventId))
+            lock (_mappingLock)
             {
-                mapping.Remove(eventId);
+                if (mapping.ContainsKey(eventId))
+                {
+                    mapping.Remove(eventId);
+                }
             }
         }
     }

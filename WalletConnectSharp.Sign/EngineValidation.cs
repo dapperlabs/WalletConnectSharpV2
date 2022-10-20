@@ -18,7 +18,7 @@ namespace WalletConnectSharp.Sign
         
         private void IsInitialized()
         {
-            if (!initialized)
+            if (!_initialized)
             {
                 throw WalletConnectException.FromType(ErrorType.NOT_INITIALIZED, Name);
             }

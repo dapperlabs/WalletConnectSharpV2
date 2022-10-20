@@ -182,9 +182,12 @@ namespace WalletConnectSharp.Sign.Controllers
             return _core.Storage.SetItem(StorageKey, records);
         }
 
-        private Task<JsonRpcRecord<T, TR>[]> GetJsonRpcRecords()
+        private async Task<JsonRpcRecord<T, TR>[]> GetJsonRpcRecords()
         {
-            return _core.Storage.GetItem<JsonRpcRecord<T, TR>[]>(StorageKey);
+            if (await _core.Storage.HasItem(StorageKey))
+                return await _core.Storage.GetItem<JsonRpcRecord<T, TR>[]>(StorageKey);
+
+            return Array.Empty<JsonRpcRecord<T, TR>>();
         }
 
         private JsonRpcRecord<T, TR> GetRecord(long id)

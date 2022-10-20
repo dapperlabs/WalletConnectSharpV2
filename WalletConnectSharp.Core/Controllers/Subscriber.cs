@@ -127,7 +127,6 @@ namespace WalletConnectSharp.Core.Controllers
             {
                 await Restore();
                 await Reset();
-                
                 RegisterEventListeners();
                 OnEnabled();
             }
@@ -241,7 +240,7 @@ namespace WalletConnectSharp.Core.Controllers
                     Topic = topic
                 }
             };
-
+            
             return _relayer.Provider.Request<JsonRpcSubscriberParams, string>(request);
         }
 

@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Crypto.Models;
 using WalletConnectSharp.Network;
 
 namespace WalletConnectSharp.Crypto.Interfaces
@@ -77,10 +78,9 @@ namespace WalletConnectSharp.Crypto.Interfaces
         /// <summary>
         /// Encrypt a message with the given topic's Sym key. 
         /// </summary>
-        /// <param name="topic">The topic of the Sym key to use to encrypt the message</param>
-        /// <param name="message">The message to encrypt</param>
+        /// <param name="@params">The encryption parameters to use</param>
         /// <returns>The encrypted message from an async task</returns>
-        Task<string> Encrypt(string topic, string message);
+        Task<string> Encrypt(EncryptParams @params);
 
         /// <summary>
         /// Decrypt an encrypted message using the given topic's Sym key.
@@ -97,7 +97,7 @@ namespace WalletConnectSharp.Crypto.Interfaces
         /// <param name="topic">The topic of the Sym key to use to encrypt the IJsonRpcPayload</param>
         /// <param name="payload">The payload to encode and encrypt</param>
         /// <returns>The encoded and encrypted IJsonRpcPayload from an async task</returns>
-        Task<string> Encode(string topic, IJsonRpcPayload payload);
+        Task<string> Encode(string topic, IJsonRpcPayload payload, EncodeOptions options = null);
 
         /// <summary>
         /// Decode an encoded/encrypted message to a IJsonRpcPayload using the given topic's Sym key. If the topic
@@ -108,5 +108,9 @@ namespace WalletConnectSharp.Crypto.Interfaces
         /// <typeparam name="T">The type of the IJsonRpcPayload to convert the encoded Json to</typeparam>
         /// <returns>The decoded, decrypted and deserialized object of type T from an async task</returns>
         Task<T> Decode<T>(string topic, string encoded) where T : IJsonRpcPayload;
+
+        Task<string> GetClientId();
+        
+        Task<string> SignJwt(string aud);
     }
 }

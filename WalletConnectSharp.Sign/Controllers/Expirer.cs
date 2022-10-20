@@ -226,9 +226,11 @@ namespace WalletConnectSharp.Sign.Controllers
             return _core.Storage.SetItem(StorageKey, expirations);
         }
 
-        private Task<Expiration[]> GetExpirations()
+        private async Task<Expiration[]> GetExpirations()
         {
-            return _core.Storage.GetItem<Expiration[]>(StorageKey);
+            if (!(await _core.Storage.HasItem(StorageKey)))
+                await _core.Storage.SetItem(StorageKey, Array.Empty<Expiration>());
+            return await _core.Storage.GetItem<Expiration[]>(StorageKey);
         }
 
         private async void Persist()

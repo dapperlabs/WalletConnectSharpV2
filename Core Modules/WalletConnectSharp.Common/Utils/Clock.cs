@@ -69,5 +69,10 @@ namespace WalletConnectSharp.Common.Utils
 
             return DateTime.Now >= dateTime;
         }
+
+        public static long Now()
+        {
+            return ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
+        }
     }
 }

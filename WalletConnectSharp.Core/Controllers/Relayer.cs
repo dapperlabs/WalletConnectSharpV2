@@ -17,7 +17,7 @@ namespace WalletConnectSharp.Core.Controllers
 {
     public class Relayer : IRelayer
     {
-        public static readonly string DEFAULT_RELAY_URL = "wss://relay.walletconnect.com";
+        public static readonly string DEFAULT_RELAY_URL = "wss://relay.walletconnect.com/";
 
         // TODO Pull this from assembly version
         public static readonly string SDK_VERSION = "2.0.0-rc.1";
@@ -71,7 +71,8 @@ namespace WalletConnectSharp.Core.Controllers
         
         public async Task Init()
         {
-            Provider = CreateProvider();
+            var auth = await this.Core.Crypto.SignJwt(this.relayUrl);
+            Provider = CreateProvider(auth);
 
             await Task.WhenAll(
                 Messages.Init(), Provider.Connect(), Subscriber.Init()
@@ -82,7 +83,7 @@ namespace WalletConnectSharp.Core.Controllers
             initialized = true;
         }
 
-        protected virtual IJsonRpcProvider CreateProvider()
+        protected virtual IJsonRpcProvider CreateProvider(string auth)
         {
             return new JsonRpcProvider(
                 new WebsocketConnection(
@@ -91,7 +92,8 @@ namespace WalletConnectSharp.Core.Controllers
                         IRelayer.Version.ToString(),
                         relayUrl,
                         SDK_VERSION,
-                        projectId
+                        projectId,
+                        auth
                     )
                 )
             );
@@ -179,7 +181,7 @@ namespace WalletConnectSharp.Core.Controllers
             var os = Environment.OSVersion.Platform.ToString();
             var osVersion = Environment.OSVersion.Version.ToString();
 
-            var osInfo = string.Format("-", os, osVersion);
+            var osInfo = string.Join("-", os, osVersion);
             var environment = "WalletConnectSharpv2:" + Environment.Version;
 
             var sdkType = "C#";
@@ -189,19 +191,20 @@ namespace WalletConnectSharp.Core.Controllers
         }
 
         protected virtual string FormatRelayRpcUrl(string protocol, string version, string relayUrl, string sdkVersion,
-            string projectId)
+            string projectId, string auth)
         {
             var splitUrl = relayUrl.Split("?");
             var ua = FormatUA(protocol, version, sdkVersion);
 
             var currentParameters = UrlUtils.ParseQs(splitUrl.Length > 1 ? splitUrl[1] : "");
             
-            currentParameters.Add("ua", ua);
+            currentParameters.Add("auth", auth);
             currentParameters.Add("projectId", projectId);
+            currentParameters.Add("ua", ua);
 
             var formattedParameters = UrlUtils.StringifyQs(currentParameters);
 
-            return splitUrl[0] + "?" + formattedParameters;
+            return splitUrl[0] + formattedParameters;
         }
 
         public async Task Publish(string topic, string message, PublishOptions opts = null)

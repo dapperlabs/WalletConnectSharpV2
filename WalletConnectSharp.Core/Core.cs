@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using WalletConnectSharp.Core.Controllers;
 using WalletConnectSharp.Core.Interfaces;
@@ -52,6 +53,11 @@ namespace WalletConnectSharp.Core
                     RelayUrl = null,
                     Storage = new InMemoryStorage()
                 };
+            }
+
+            if (options.Storage == null)
+            {
+                options.Storage = new FileSystemStorage();
             }
 
             ProjectId = options.ProjectId;
