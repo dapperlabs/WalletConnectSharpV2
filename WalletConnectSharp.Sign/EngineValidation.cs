@@ -149,7 +149,7 @@ namespace WalletConnectSharp.Sign
 
             var validNamespacesError = IsValidNamespaces(namespaces, "OnSessionSettleRequest()");
             if (validNamespacesError != null)
-                throw validNamespacesError.ToError();
+                throw validNamespacesError.ToException();
 
             if (Clock.IsExpired(expiry))
                 throw WalletConnectException.FromType(ErrorType.EXPIRED, "OnSessionSettleRequest()");
@@ -171,11 +171,11 @@ namespace WalletConnectSharp.Sign
 
             var validNamespacesError = IsValidNamespaces(namespaces, "approve()");
             if (validNamespacesError != null)
-                throw validNamespacesError.ToError();
+                throw validNamespacesError.ToException();
 
             var conformingNamespacesError = IsConformingNamespaces(proposal.RequiredNamespaces, namespaces, "update()");
             if (conformingNamespacesError != null)
-                throw conformingNamespacesError.ToError();
+                throw conformingNamespacesError.ToException();
 
             if (relayProtocol != null)
             {
@@ -220,12 +220,12 @@ namespace WalletConnectSharp.Sign
 
             var validNamespaceError = IsValidNamespaces(namespaces, "update()");
             if (validNamespaceError != null)
-                throw validNamespaceError.ToError();
+                throw validNamespaceError.ToException();
 
             var conformingNamespacesError = IsConformingNamespaces(session.RequiredNamespaces, namespaces, "update()");
 
             if (conformingNamespacesError != null)
-                throw conformingNamespacesError.ToError();
+                throw conformingNamespacesError.ToException();
         }
 
         async Task IEnginePrivate.IsValidExtend(ExtendParams @params)

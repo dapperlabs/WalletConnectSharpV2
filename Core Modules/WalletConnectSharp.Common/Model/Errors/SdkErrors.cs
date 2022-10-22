@@ -1,18 +1,34 @@
-﻿namespace WalletConnectSharp.Common
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace WalletConnectSharp.Common
 {
     public static class SdkErrors
     {
-        private static readonly object DefaultParameters = new
+        private static readonly Dictionary<string, object> DefaultParameters = new Dictionary<string, object>()
         {
-            Topic = "undefined",
-            Message = "Something went wrong",
-            Name = "parameter",
-            Context = "session",
-            Blockchain = "Ethereum"
+            {"topic", "undefined"},
+            {"message", "Something went wrong"},
+            {"name", "parameter"},
+            {"context", "session"},
+            {"blockchain", "Ethereum"}
         };
-        
+
         public static string MessageFromType(ErrorType type, object @params = null)
         {
+            return MessageFromType(type, null, @params.AsDictionary());
+        }
+        
+        public static string MessageFromType(ErrorType type, string message = null, Dictionary<string, object> @params = null)
+        {
+            if (@params == null)
+            {
+                @params = new Dictionary<string, object>();
+            }
+            
+            if (!string.IsNullOrWhiteSpace(message) && !@params.ContainsKey("message"))
+                @params.Add("message", message);
+            
             string errorMessage;
             switch (type)
             {
@@ -165,7 +181,7 @@
                     errorMessage = "Unknown error {params}";
                     break;
                 case ErrorType.NON_CONFORMING_NAMESPACES:
-                    errorMessage = (string)@params;
+                    errorMessage = @params["message"].ToString();
                     break;
             }
 
@@ -174,23 +190,21 @@
             return errorMessage;
         }
 
-        private static string FormatErrorText(string formattedText, object defaultParams, object @params = null)
+        private static string FormatErrorText(string formattedText, Dictionary<string, object> defaultArgs, Dictionary<string, object> args = null)
         {
-            if (@params == null)
-                @params = new object();
-
-            var args = @params.ToDictionary<string>();
-            var defaultArgs = @params.ToDictionary<string>();
+            if (args == null)
+                args = new Dictionary<string, object>();
+            
             string text = formattedText;
 
             foreach (var key in args.Keys)
             {
-                text = text.Replace("{" + key.ToLower() + "}", args[key]);
+                text = text.Replace("{" + key.ToLower() + "}", args[key].ToString());
             }
             
             foreach (var key in defaultArgs.Keys)
             {
-                text = text.Replace("{" + key.ToLower() + "}", defaultArgs[key]);
+                text = text.Replace("{" + key.ToLower() + "}", defaultArgs[key].ToString());
             }
 
             return text;

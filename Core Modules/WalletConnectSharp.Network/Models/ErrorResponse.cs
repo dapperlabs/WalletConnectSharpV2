@@ -50,9 +50,9 @@ namespace WalletConnectSharp.Network.Models
             };
         }
 
-        public WalletConnectException ToError()
+        public WalletConnectException ToException()
         {
-            return WalletConnectException.FromType((ErrorType)Code);
+            return WalletConnectException.FromType((ErrorType)Code, Message);
         }
     }
 }

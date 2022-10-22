@@ -70,6 +70,9 @@ namespace WalletConnectSharp.Network
             {
                 await this._connection.Close();
             }
+            
+            // Reset connecting task
+            Connecting = new TaskCompletionSource<bool>();
 
             await this._connection.Open(connection);
             FinalizeConnection(this._connection);
@@ -82,12 +85,15 @@ namespace WalletConnectSharp.Network
             {
                 await this._connection.Close();
             }
+            
+            // Reset connecting task
+            Connecting = new TaskCompletionSource<bool>();
 
             await connection.Open();
 
             FinalizeConnection(connection);
         }
-
+        
         private void FinalizeConnection(IJsonRpcConnection connection)
         {
             this._connection = connection;
@@ -123,6 +129,8 @@ namespace WalletConnectSharp.Network
         public async Task Disconnect()
         {
             await _connection.Close();
+            // Reset connecting task
+            Connecting = new TaskCompletionSource<bool>();
         }
 
         public async Task<TR> Request<T, TR>(IRequestArguments<T> requestArgs, object context = null)
@@ -210,7 +218,7 @@ namespace WalletConnectSharp.Network
             }
             
             Events.Trigger(ProviderEvents.Payload, payload);
-            
+
             if (payload.IsRequest)
             {
                 Events.Trigger(ProviderEvents.RawRequestMessage, json);

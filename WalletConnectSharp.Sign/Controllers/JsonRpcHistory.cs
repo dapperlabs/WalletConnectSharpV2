@@ -194,9 +194,9 @@ namespace WalletConnectSharp.Sign.Controllers
         {
             IsInitialized();
 
-            if (_records.ContainsKey(id))
+            if (!_records.ContainsKey(id))
             {
-                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY, $"{Name}: {id}");
+                throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY, new {Tag = $"{Name}: {id}"});
             }
 
             return _records[id];

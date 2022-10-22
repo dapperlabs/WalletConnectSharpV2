@@ -59,7 +59,7 @@ namespace WalletConnectSharp.Network.Models
         {
             get
             {
-                return _extraStuff.ContainsKey("result");
+                return _extraStuff.ContainsKey("result") || IsError;
             }
         }
 

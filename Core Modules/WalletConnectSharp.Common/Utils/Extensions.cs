@@ -1,16 +1,28 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Web;
-using Newtonsoft.Json;
 
 namespace WalletConnectSharp.Common
 {
     public static class Extensions
     {
-        public static Dictionary<string, TValue> ToDictionary<TValue>(this object obj)
+        public static Dictionary<string, object> AsDictionary(this object obj, bool enforceLowercase = true)
         {
-            var json = JsonConvert.SerializeObject(obj);
-            return JsonConvert.DeserializeObject<Dictionary<string, TValue>>(json);
+            var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+            if (obj != null)
+            {
+                foreach (PropertyInfo propertyDescriptor in obj.GetType().GetProperties())
+                {
+                    object value = propertyDescriptor.GetValue(obj, null);
+                    var key = enforceLowercase ? propertyDescriptor.Name.ToLower() : propertyDescriptor.Name;
+                    
+                    dict.Add(key, value);
+                }
+            }
+
+            return dict;
         }
         
         public static bool IsNumericType(this object o)

@@ -26,6 +26,24 @@ namespace WalletConnectSharp.Crypto
     {
         private const string CRYPTO_CLIENT_SEED = "client_ed25519_seed";
         
+        private const string MULTICODEC_ED25519_ENCODING = "base58btc";
+        private const string MULTICODEC_ED25519_BASE = "z";
+        private const string MULTICODEC_ED25519_HEADER = "K36";
+        private const int MULTICODEC_ED25519_LENGTH = 32;
+        private const string DID_DELIMITER = ":";
+        private const string DID_PREFIX = "did";
+        private const string DID_METHOD = "key";
+        private const long CRYPTO_JWT_TTL = Clock.ONE_DAY;
+        private const string JWT_DELIMITER = ".";
+        private static readonly Encoding DATA_ENCODING = Encoding.UTF8;
+        private static readonly Encoding JSON_ENCODING = Encoding.UTF8;
+
+        private const int TYPE_0 = 0;
+        private const int TYPE_1 = 1;
+        private const int TYPE_LENGTH = 1;
+        private const int IV_LENGTH = 12;
+        private const int KEY_LENGTH = 32;
+        
         /// <summary>
         /// The name of the crypto module
         /// </summary>
@@ -135,8 +153,8 @@ namespace WalletConnectSharp.Crypto
 
             using (var keypair = Key.Create(KeyAgreementAlgorithm.X25519, options))
             {
-                var publicKey = keypair.PublicKey.Export(KeyBlobFormat.NSecPublicKey).ToHex();
-                var privateKey = keypair.Export(KeyBlobFormat.NSecPrivateKey).ToHex();
+                var publicKey = keypair.PublicKey.Export(KeyBlobFormat.RawPublicKey).ToHex();
+                var privateKey = keypair.Export(KeyBlobFormat.RawPrivateKey).ToHex();
 
                 return this.SetPrivateKey(publicKey, privateKey);
             }
@@ -158,7 +176,7 @@ namespace WalletConnectSharp.Crypto
             {
                 using (var symKey = DeriveSymmetricKey(sharedKey))
                 {
-                    var symKeyRaw = symKey.Export(KeyBlobFormat.NSecSymmetricKey);
+                    var symKeyRaw = symKey.Export(KeyBlobFormat.RawSymmetricKey);
 
                     return await SetSymKey(symKeyRaw.ToHex(), overrideTopic);
                 }
@@ -202,6 +220,47 @@ namespace WalletConnectSharp.Crypto
             return this.KeyChain.Delete(topic);
         }
 
+        private EncodingValidation ValidateEncoding(EncodeOptions options)
+        {
+            var type = options?.Type ?? TYPE_0;
+            if (type == TYPE_1)
+            {
+                if (options == null || string.IsNullOrWhiteSpace(options.SenderPublicKey))
+                {
+                    throw new ArgumentException("Missing sender public key");
+                }
+
+                if (options == null || string.IsNullOrWhiteSpace(options.ReceiverPublicKey))
+                {
+                    throw new ArgumentException("Missing receiver public key");
+                }
+            }
+
+            return new EncodingValidation()
+            {
+                Type = type,
+                ReceiverPublicKey = options?.ReceiverPublicKey,
+                SenderPublicKey = options?.SenderPublicKey
+            };
+        }
+
+        private EncodingValidation ValidateDecoding(string encoded, DecodeOptions options)
+        {
+            var deserialized = Deserialize(encoded);
+            return ValidateEncoding(new EncodeOptions()
+            {
+                Type = int.Parse(Bases.Base10.Encode(deserialized.Type)),
+                SenderPublicKey = deserialized.SenderPublicKey?.ToHex(),
+                ReceiverPublicKey = options?.ReceiverPublicKey
+            });
+        }
+
+        private bool IsTypeOneEnvelope(EncodingValidation param)
+        {
+            return param.Type == TYPE_1 && !string.IsNullOrWhiteSpace(param.SenderPublicKey) &&
+                   !string.IsNullOrWhiteSpace(param.ReceiverPublicKey);
+        }
+
         /// <summary>
         /// Encrypt a message with the given topic's Sym key. 
         /// </summary>
@@ -226,12 +285,12 @@ namespace WalletConnectSharp.Crypto
                 rawIv = iv.HexToByteArray();
             }
 
-            var type1 = @params.Type == 1;
+            var type1 = @params.Type == TYPE_1;
             var senderPublicKey = !string.IsNullOrWhiteSpace(@params.SenderPublicKey)
                 ? @params.SenderPublicKey.HexToByteArray()
                 : null;
 
-            var format = type1 ? KeyBlobFormat.NSecSymmetricKey : KeyBlobFormat.RawSymmetricKey;
+            var format = KeyBlobFormat.RawSymmetricKey;
 
             byte[] encrypted;
             using (var key = Key.Import(AeadAlgorithm.ChaCha20Poly1305, @params.SymKey.HexToByteArray(), format))
@@ -281,16 +340,8 @@ namespace WalletConnectSharp.Crypto
         {
             this.IsInitialized();
 
-            if (options == null)
-            {
-                options = new EncodeOptions()
-                {
-                    Type = 0
-                };
-            }
-
-            var isTypeOne = options.Type == 1 && !string.IsNullOrWhiteSpace(options.ReceiverPublicKey) &&
-                            !string.IsNullOrWhiteSpace(options.SenderPublicKey);
+            var validatedOptions = ValidateEncoding(options);
+            var isTypeOne = IsTypeOneEnvelope(validatedOptions);
 
             if (isTypeOne)
             {
@@ -300,8 +351,8 @@ namespace WalletConnectSharp.Crypto
             }
 
             var symKey = await GetSymKey(topic);
-            var type = options.Type;
-            var senderPublicKey = options.SenderPublicKey;
+            var type = validatedOptions.Type;
+            var senderPublicKey = validatedOptions.SenderPublicKey;
             var message = JsonConvert.SerializeObject(payload);
             var results = await Encrypt(new EncryptParams()
             {
@@ -322,29 +373,62 @@ namespace WalletConnectSharp.Crypto
         /// <param name="encoded">The encoded/encrypted message to decrypt</param>
         /// <typeparam name="T">The type of the IJsonRpcPayload to convert the encoded Json to</typeparam>
         /// <returns>The decoded, decrypted and deserialized object of type T from an async task</returns>
-        public async Task<T> Decode<T>(string topic, string encoded) where T : IJsonRpcPayload
+        public async Task<T> Decode<T>(string topic, string encoded, DecodeOptions options = null) where T : IJsonRpcPayload
         {
             this.IsInitialized();
-            bool hasKeys = await this.HasKeys(topic);
-            var message = hasKeys
-                ? await this.Decrypt(topic, encoded)
-                : Encoding.UTF8.GetString(encoded.HexToByteArray());
+            var @params = ValidateDecoding(encoded, options);
+            var isType1 = IsTypeOneEnvelope(@params);
+
+            if (isType1)
+            {
+                var selfPublicKey = @params.ReceiverPublicKey;
+                var peerPublicKey = @params.SenderPublicKey;
+                topic = await this.GenerateSharedKey(selfPublicKey, peerPublicKey);
+            }
+
+            var message = await Decrypt(topic, encoded);
             var payload = JsonConvert.DeserializeObject<T>(message);
 
             return payload;
         }
 
-        private const string MULTICODEC_ED25519_ENCODING = "base58btc";
-        private const string MULTICODEC_ED25519_BASE = "z";
-        private const string MULTICODEC_ED25519_HEADER = "K36";
-        private const int MULTICODEC_ED25519_LENGTH = 32;
-        private const string DID_DELIMITER = ":";
-        private const string DID_PREFIX = "did";
-        private const string DID_METHOD = "key";
-        private const long CRYPTO_JWT_TTL = Clock.ONE_DAY;
-        private const string JWT_DELIMITER = ".";
-        private static readonly Encoding DATA_ENCODING = Encoding.UTF8;
-        private static readonly Encoding JSON_ENCODING = Encoding.UTF8;
+        private EncodingParams Deserialize(string encoded)
+        {
+            var bytes = Convert.FromBase64String(encoded);
+            var typeRaw = bytes.Take(TYPE_LENGTH).ToArray();
+            var slice1 = TYPE_LENGTH;
+
+            var type = int.Parse(Bases.Base10.Encode(typeRaw));
+            if (type == TYPE_1)
+            {
+                var slice2 = slice1 + KEY_LENGTH;
+                var slice3 = slice2 + IV_LENGTH;
+                var senderPublicKey = new ArraySegment<byte>(bytes, slice1, KEY_LENGTH);
+                var iv = new ArraySegment<byte>(bytes, slice2, IV_LENGTH);
+                var @sealed = new ArraySegment<byte>(bytes, slice3, bytes.Length - (TYPE_LENGTH + KEY_LENGTH + IV_LENGTH));
+
+                return new EncodingParams()
+                {
+                    Iv = iv.ToArray(),
+                    Sealed = @sealed.ToArray(),
+                    SenderPublicKey = senderPublicKey.ToArray(),
+                    Type = typeRaw
+                };
+            }
+            else
+            {
+                var slice2 = slice1 + IV_LENGTH;
+                var iv = new ArraySegment<byte>(bytes, slice1, IV_LENGTH);
+                var @sealed = new ArraySegment<byte>(bytes, slice2, bytes.Length - (IV_LENGTH + TYPE_LENGTH));
+
+                return new EncodingParams()
+                {
+                    Type = typeRaw,
+                    Sealed = @sealed.ToArray(),
+                    Iv = iv.ToArray()
+                };
+            }
+        }
 
         public async Task<string> GetClientId()
         {
@@ -469,10 +553,10 @@ namespace WalletConnectSharp.Crypto
         private SharedSecret DeriveSharedKey(string privateKeyA, string publicKeyB)
         {
             using (var keyA = Key.Import(KeyAgreementAlgorithm.X25519, privateKeyA.HexToByteArray(),
-                       KeyBlobFormat.NSecPrivateKey))
+                       KeyBlobFormat.RawPrivateKey))
             {
                 var keyB = PublicKey.Import(KeyAgreementAlgorithm.X25519, publicKeyB.HexToByteArray(),
-                    KeyBlobFormat.NSecPublicKey);
+                    KeyBlobFormat.RawPublicKey);
                 
                 var options = new SharedSecretCreationParameters
                 {
@@ -490,22 +574,24 @@ namespace WalletConnectSharp.Crypto
                 ExportPolicy = KeyExportPolicies.AllowPlaintextArchiving
             };
             
-            return KeyDerivationAlgorithm.HkdfSha512.DeriveKey(secretKey, Array.Empty<byte>(), Array.Empty<byte>(),
+            return KeyDerivationAlgorithm.HkdfSha256.DeriveKey(secretKey, Array.Empty<byte>(), Array.Empty<byte>(),
                 AeadAlgorithm.ChaCha20Poly1305, options);
         }
 
         private string DeserializeAndDecrypt(string symKey, string encoded)
         {
-            var rawIv = encoded.HexToByteArray().Take(12).ToArray();
-            var @sealed = encoded.HexToByteArray().Skip(12).ToArray();
+            var param = Deserialize(encoded);
+            var @sealed = param.Sealed;
+            var iv = param.Iv;
+            var type = int.Parse(Bases.Base10.Encode(param.Type));
+            var isType1 = type == TYPE_1;
+            var format = KeyBlobFormat.RawSymmetricKey;
 
-            using (var key = Key.Import(AeadAlgorithm.ChaCha20Poly1305, symKey.HexToByteArray(),
-                       KeyBlobFormat.NSecSymmetricKey))
+            using (var key = Key.Import(AeadAlgorithm.ChaCha20Poly1305, symKey.HexToByteArray(), format))
             {
-                var rawDecrypted = AeadAlgorithm.ChaCha20Poly1305.Decrypt(key, rawIv, Array.Empty<byte>(), @sealed);
+                var rawDecrypted = AeadAlgorithm.ChaCha20Poly1305.Decrypt(key, iv, Array.Empty<byte>(), @sealed);
 
-                if (rawDecrypted != null) return Encoding.UTF8.GetString(rawDecrypted);
-                return null;
+                return rawDecrypted != null ? Encoding.UTF8.GetString(rawDecrypted) : null;
             }
         }
 

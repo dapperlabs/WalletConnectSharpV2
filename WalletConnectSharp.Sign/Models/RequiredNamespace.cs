@@ -4,7 +4,7 @@ namespace WalletConnectSharp.Sign.Models
 {
     public class RequiredNamespace : BaseRequiredNamespace
     {
-        [JsonProperty("extension")]
+        [JsonProperty("extension", NullValueHandling=NullValueHandling.Ignore)]
         public BaseRequiredNamespace[] Extension { get; set; }
     }
 }

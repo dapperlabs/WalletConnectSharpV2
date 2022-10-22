@@ -24,7 +24,7 @@ namespace WalletConnectSharp.Crypto.Encoder
 
         public string Encode(byte[] bytes)
         {
-            return $"{Prefix}{Encoder(bytes)}";
+            return $"{Encoder(bytes)}";
         }
 
         public byte[] Decode(string source)

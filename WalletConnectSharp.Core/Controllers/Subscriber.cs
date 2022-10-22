@@ -221,6 +221,9 @@ namespace WalletConnectSharp.Core.Controllers
                     Relay = subscription.Relay,
                     Topic = subscription.Topic
                 };
+
+                if (pending.ContainsKey(@params.Topic))
+                    pending.Remove(@params.Topic);
                 
                 pending.Add(@params.Topic, @params);
 
@@ -331,6 +334,9 @@ namespace WalletConnectSharp.Core.Controllers
 
         protected virtual void AddSubscription(string id, SubscriberActive subscription)
         {
+            if (_subscriptions.ContainsKey(id))
+                _subscriptions.Remove(id);
+            
             _subscriptions.Add(id, subscription);
             _topicMap.Set(subscription.Topic, id);
             Events.Trigger(SubscriberEvents.Created, subscription);

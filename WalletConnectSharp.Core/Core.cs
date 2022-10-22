@@ -45,13 +45,14 @@ namespace WalletConnectSharp.Core
         {
             if (options == null)
             {
+                var storage = new InMemoryStorage();
                 options = new CoreOptions()
                 {
-                    KeyChain = new KeyChain(new InMemoryStorage()),
+                    KeyChain = new KeyChain(storage),
                     LoggerContext = Context, //TODO Add logger
                     ProjectId = null,
                     RelayUrl = null,
-                    Storage = new InMemoryStorage()
+                    Storage = storage
                 };
             }
 

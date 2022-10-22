@@ -17,11 +17,11 @@ namespace WalletConnectSharp.Sign.Interfaces
 
         internal Task ActivatePairing(string topic);
 
-        internal Task DeleteSession(string topic, bool expirerHasDeleted = false);
+        internal Task DeleteSession(string topic);
 
-        internal Task DeletePairing(string topic, bool expirerHasDeleted = false);
+        internal Task DeletePairing(string topic);
 
-        internal Task DeleteProposal(long id, bool expirerHasDeleted = false);
+        internal Task DeleteProposal(long id);
 
         internal Task SetExpiry(string topic, long expiry);
 

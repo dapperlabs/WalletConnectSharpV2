@@ -107,7 +107,7 @@ namespace WalletConnectSharp.Crypto.Interfaces
         /// <param name="encoded">The encoded/encrypted message to decrypt</param>
         /// <typeparam name="T">The type of the IJsonRpcPayload to convert the encoded Json to</typeparam>
         /// <returns>The decoded, decrypted and deserialized object of type T from an async task</returns>
-        Task<T> Decode<T>(string topic, string encoded) where T : IJsonRpcPayload;
+        Task<T> Decode<T>(string topic, string encoded, DecodeOptions options = null) where T : IJsonRpcPayload;
 
         Task<string> GetClientId();
         

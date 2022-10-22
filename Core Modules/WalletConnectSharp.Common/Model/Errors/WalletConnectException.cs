@@ -12,6 +12,15 @@ namespace WalletConnectSharp.Common
         [JsonProperty("type")]
         public string Type { get; private set; }
 
+        [JsonIgnore]
+        public ErrorType CodeType
+        {
+            get
+            {
+                return (ErrorType)Code;
+            }
+        }
+
         public WalletConnectException(string message, ErrorType type) : base(message)
         {
             Code = (uint) type;
@@ -24,13 +33,18 @@ namespace WalletConnectSharp.Common
             Type = Enum.GetName(typeof(ErrorType), type);
         }
 
-        public static WalletConnectException FromType(ErrorType type, object @params = null, Exception innerException = null)
+        public static WalletConnectException FromType(ErrorType type, string message = null, Dictionary<string, object> @params = null, Exception innerException = null)
         {
-            string errorMessage = SdkErrors.MessageFromType(type, @params);
+            string errorMessage = SdkErrors.MessageFromType(type, message, @params);
 
             if (innerException != null)
                 return new WalletConnectException(errorMessage, innerException, type);
             return new WalletConnectException(errorMessage, type);
+        }
+
+        public static WalletConnectException FromType(ErrorType type, object @params = null)
+        {
+            return FromType(type, null, @params.AsDictionary());
         }
     }
 }

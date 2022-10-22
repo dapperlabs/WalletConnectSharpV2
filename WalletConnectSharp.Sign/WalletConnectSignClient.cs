@@ -1,11 +1,13 @@
 using System;
 using System.Threading.Tasks;
 using WalletConnectSharp.Core.Interfaces;
+using WalletConnectSharp.Crypto;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Sign.Controllers;
 using WalletConnectSharp.Sign.Interfaces;
 using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Sign.Models.Engine;
+using WalletConnectSharp.Storage;
 
 namespace WalletConnectSharp.Sign
 {
@@ -60,23 +62,33 @@ namespace WalletConnectSharp.Sign
 
         private WalletConnectSignClient(SignClientOptions options)
         {
-            Options = options;
-            
-            if (options == null || string.IsNullOrWhiteSpace(options.Name))
-                Name = CONTEXT;
-            else
-                Name = options.Name;
-
-            if (options == null || string.IsNullOrWhiteSpace(options.LoggerContext))
-                Context = CONTEXT;
-            else
-                Context = options.LoggerContext;
-
             if (options == null || options.Metadata == null)
                 throw new ArgumentException("The Metadata field must be set in the SignClientOptions object");
             else
                 Metadata = options.Metadata;
             
+            Options = options;
+            
+            if (string.IsNullOrWhiteSpace(options.Name))
+                Name = CONTEXT;
+            else
+                Name = options.Name;
+
+            if (string.IsNullOrWhiteSpace(options.LoggerContext))
+                Context = CONTEXT;
+            else
+                Context = options.LoggerContext;
+
+            // Setup storage
+            if (options.Storage == null)
+            {
+                var storage = new FileSystemStorage();
+                options.Storage = storage;
+
+                // If keychain is also not set, use the same storage instance
+                options.KeyChain ??= new KeyChain(storage);
+            }
+
             if (options.Core != null)
                 Core = options.Core;
             else

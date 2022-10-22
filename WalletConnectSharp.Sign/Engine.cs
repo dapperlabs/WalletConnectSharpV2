@@ -192,8 +192,11 @@ namespace WalletConnectSharp.Sign
                         Message = message
                     });
                 }
-                catch
+                catch(WalletConnectException err)
                 {
+                    if (err.CodeType != ErrorType.NO_MATCHING_KEY)
+                        throw;
+                    
                     // ignored if we can't find anything in the history
                 }
             }
@@ -302,34 +305,46 @@ namespace WalletConnectSharp.Sign
             await PrivateThis.SetExpiry(topic, expiry);
         }
 
-        async Task IEnginePrivate.DeleteSession(string topic, bool expirerHasDeleted = false)
+        async Task IEnginePrivate.DeleteSession(string topic)
         {
             var session = this.Client.Session.Get(topic);
             var self = session.Self;
+            
+            bool expirerHasDeleted = !this.Client.Expirer.Has(topic);
+            bool sessionDeleted = !this.Client.Session.Keys.Contains(topic);
+            bool hasKeypairDeleted = !(await this.Client.Core.Crypto.HasKeys(self.PublicKey));
+            bool hasSymkeyDeleted = !(await this.Client.Core.Crypto.HasKeys(topic));
 
             await this.Client.Core.Relayer.Unsubscribe(topic);
             await Task.WhenAll(
-                this.Client.Session.Delete(topic, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
-                this.Client.Core.Crypto.DeleteKeyPair(self.PublicKey),
-                this.Client.Core.Crypto.DeleteSymKey(topic),
+                sessionDeleted ? Task.CompletedTask : this.Client.Session.Delete(topic, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
+                hasKeypairDeleted ? Task.CompletedTask : this.Client.Core.Crypto.DeleteKeyPair(self.PublicKey),
+                hasSymkeyDeleted ? Task.CompletedTask : this.Client.Core.Crypto.DeleteSymKey(topic),
                 expirerHasDeleted ? Task.CompletedTask : this.Client.Expirer.Delete(topic)
             );
         }
 
-        async Task IEnginePrivate.DeletePairing(string topic, bool expirerHasDeleted = false)
+        async Task IEnginePrivate.DeletePairing(string topic)
         {
+            bool expirerHasDeleted = !this.Client.Expirer.Has(topic);
+            bool pairingHasDeleted = !this.Client.Pairing.Keys.Contains(topic);
+            bool symKeyHasDeleted = !(await this.Client.Core.Crypto.HasKeys(topic));
+            
             await this.Client.Core.Relayer.Unsubscribe(topic);
             await Task.WhenAll(
-                this.Client.Pairing.Delete(topic, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
-                this.Client.Core.Crypto.DeleteSymKey(topic),
+                pairingHasDeleted ? Task.CompletedTask : this.Client.Pairing.Delete(topic, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
+                symKeyHasDeleted ? Task.CompletedTask : this.Client.Core.Crypto.DeleteSymKey(topic),
                 expirerHasDeleted ? Task.CompletedTask : this.Client.Expirer.Delete(topic)
             );
         }
 
-        Task IEnginePrivate.DeleteProposal(long id, bool expirerHasDeleted = false)
+        Task IEnginePrivate.DeleteProposal(long id)
         {
+            bool expirerHasDeleted = !this.Client.Expirer.Has(id);
+            bool proposalHasDeleted = !this.Client.Proposal.Keys.Contains(id);
+            
             return Task.WhenAll(
-                this.Client.Proposal.Delete(id, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
+                proposalHasDeleted ? Task.CompletedTask : this.Client.Proposal.Delete(id, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED)),
                 expirerHasDeleted ? Task.CompletedTask : this.Client.Expirer.Delete(id)
             );
         }
@@ -424,6 +439,7 @@ namespace WalletConnectSharp.Sign
                     selfPublicKey,
                     peerPublicKey
                 );
+                Console.WriteLine("Subscribing to session topic " + sessionTopic);
                 var subscriptionId = await this.Client.Core.Relayer.Subscribe(sessionTopic);
                 await PrivateThis.ActivatePairing(topic);
             }
@@ -834,7 +850,7 @@ namespace WalletConnectSharp.Sign
             {
                 if (e.EventData.IsError)
                 {
-                    approvalTask.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                    approvalTask.SetException(e.EventData.Error.ToException());
                 }
             });
 
@@ -843,7 +859,7 @@ namespace WalletConnectSharp.Sign
                 throw WalletConnectException.FromType(ErrorType.NO_MATCHING_KEY, $"connect() pairing topic: {topic}");
             }
 
-            var id = await PrivateThis.SendRequest<SessionPropose, bool>(topic, proposal);
+            var id = await PrivateThis.SendRequest<SessionPropose, SessionProposeResponse>(topic, proposal);
             var expiry = Clock.CalculateExpiry(Clock.FIVE_MINUTES);
 
             await PrivateThis.SetProposal(id, new ProposalStruct()
@@ -882,8 +898,10 @@ namespace WalletConnectSharp.Sign
             };
             var uri = $"{this.Client.Protocol}:{topic}@{this.Client.Version}?"
                 .AddQueryParam("symKey", symKey)
-                .AddQueryParam("relay-protocol", relay.Protocol)
-                .AddQueryParam("relay-data", relay.Data);
+                .AddQueryParam("relay-protocol", relay.Protocol);
+
+            if (!string.IsNullOrWhiteSpace(relay.Data))
+                uri = uri.AddQueryParam("relay-data", relay.Data);
 
             await this.Client.Pairing.Set(topic, pairing);
             await this.Client.Core.Relayer.Subscribe(topic);
@@ -968,7 +986,7 @@ namespace WalletConnectSharp.Sign
             this.Events.ListenForOnce<JsonRpcResponse<bool>>($"session_approve{requestId}", (sender, e) =>
             {
                 if (e.EventData.IsError)
-                    acknowledgedTask.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                    acknowledgedTask.SetException(e.EventData.Error.ToException());
                 else
                     acknowledgedTask.SetResult(this.Client.Session.Get(sessionTopic));
             });
@@ -1043,7 +1061,7 @@ namespace WalletConnectSharp.Sign
             this.Events.ListenForOnce<JsonRpcResponse<bool>>($"session_update{id}", (sender, e) =>
             {
                 if (e.EventData.IsError)
-                    acknowledgedTask.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                    acknowledgedTask.SetException(e.EventData.Error.ToException());
                 else
                     acknowledgedTask.SetResult(e.EventData.Result);
             });
@@ -1067,7 +1085,7 @@ namespace WalletConnectSharp.Sign
             this.Events.ListenForOnce<JsonRpcResponse<bool>>($"session_extend{id}", (sender, e) =>
             {
                 if (e.EventData.IsError)
-                    acknowledgedTask.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                    acknowledgedTask.SetException(e.EventData.Error.ToException());
                 else
                     acknowledgedTask.SetResult(e.EventData.Result);
             });
@@ -1096,7 +1114,7 @@ namespace WalletConnectSharp.Sign
             this.Events.ListenForOnce<JsonRpcResponse<TR>>($"session_request{id}", (sender, e) =>
             {
                 if (e.EventData.IsError)
-                    taskSource.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                    taskSource.SetException(e.EventData.Error.ToException());
                 else
                     taskSource.SetResult(e.EventData.Result);
             });
@@ -1147,7 +1165,7 @@ namespace WalletConnectSharp.Sign
                 this.Events.ListenForOnce<JsonRpcResponse<bool>>($"session_ping{id}", (sender, e) =>
                 {
                     if (e.EventData.IsError)
-                        done.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                        done.SetException(e.EventData.Error.ToException());
                     else
                         done.SetResult(e.EventData.Result);
                 });
@@ -1160,7 +1178,7 @@ namespace WalletConnectSharp.Sign
                 this.Events.ListenForOnce<JsonRpcResponse<bool>>($"pairing_ping{id}", (sender, e) =>
                 {
                     if (e.EventData.IsError)
-                        done.SetException(WalletConnectException.FromType((ErrorType)e.EventData.Error.Code));
+                        done.SetException(e.EventData.Error.ToException());
                     else
                         done.SetResult(e.EventData.Result);
                 });

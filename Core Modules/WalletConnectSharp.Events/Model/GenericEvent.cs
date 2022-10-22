@@ -13,7 +13,7 @@ namespace WalletConnectSharp.Events.Model
 
         public void SetData(T response)
         {
-            if (EventData != null)
+            if (EventData != null && !EventData.Equals(default(T)))
             {
                 throw new ArgumentException("Response was already set");
             }

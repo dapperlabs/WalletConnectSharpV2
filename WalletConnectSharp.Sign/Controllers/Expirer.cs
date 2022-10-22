@@ -140,6 +140,10 @@ namespace WalletConnectSharp.Sign.Controllers
                 Target = target,
                 Expiry = expiry
             };
+
+            if (_expirations.ContainsKey(target))
+                _expirations.Remove(target); // We cannot override, so remove first
+            
             _expirations.Add(target, expiration);
             CheckExpiry(target, expiration);
             Events.Trigger(ExpirerEvents.Created, new ExpirerEventArgs()

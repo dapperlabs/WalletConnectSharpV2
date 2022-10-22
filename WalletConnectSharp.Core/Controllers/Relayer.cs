@@ -114,7 +114,8 @@ namespace WalletConnectSharp.Core.Controllers
             Provider.On(ProviderEvents.Disconnect, async () =>
             {
                 Events.Trigger(RelayerEvents.Disconnect, new object());
-
+                
+                
                 // Attempt to reconnect after one second
                 await Task.Delay(1000);
                 await Provider.Connect();
@@ -129,7 +130,7 @@ namespace WalletConnectSharp.Core.Controllers
         protected virtual async void OnProviderPayload(string payloadJson)
         {
             var payload = JsonConvert.DeserializeObject<JsonRpcPayload>(payloadJson);
-
+            
             if (payload != null && payload.IsRequest && payload.Method.EndsWith("_subscription"))
             {
                 var @event = JsonConvert.DeserializeObject<JsonRpcRequest<JsonRpcSubscriptionParams>>(payloadJson);
