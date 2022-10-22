@@ -439,7 +439,6 @@ namespace WalletConnectSharp.Sign
                     selfPublicKey,
                     peerPublicKey
                 );
-                Console.WriteLine("Subscribing to session topic " + sessionTopic);
                 var subscriptionId = await this.Client.Core.Relayer.Subscribe(sessionTopic);
                 await PrivateThis.ActivatePairing(topic);
             }
