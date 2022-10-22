@@ -61,5 +61,10 @@ public class SimpleExample : IExample
         await connectData.Approval;
         
         Console.WriteLine("Connected");
+
+        while (true)
+        {
+            await Task.Delay(2000);
+        }
     }
 }

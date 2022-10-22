@@ -23,10 +23,15 @@ namespace WalletConnectSharp.Storage
             }
 
             FilePath = filePath;
-            
-            Load();
         }
-        
+
+        public override Task Init()
+        {
+            return Task.WhenAll(
+                Load(), base.Init()
+            );
+        }
+
         public override async Task SetItem<T>(string key, T value)
         {
             await base.SetItem<T>(key, value);
@@ -62,7 +67,7 @@ namespace WalletConnectSharp.Storage
             _semaphoreSlim.Release();
         }
 
-        private async void Load()
+        private async Task Load()
         {
             if (!File.Exists(FilePath))
                 return;

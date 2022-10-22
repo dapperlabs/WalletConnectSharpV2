@@ -86,6 +86,7 @@ namespace WalletConnectSharp.Core
 
         private async Task Initialize()
         {
+            await Storage.Init();
             await Crypto.Init();
             await Relayer.Init();
             await HeartBeat.Init();

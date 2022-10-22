@@ -229,6 +229,7 @@ namespace WalletConnectSharp.Core.Controllers
 
                 var id = await RpcSubscribe<string>(@params.Topic, @params.Relay);
                 OnResubscribe(id, @params);
+                Console.WriteLine("Resubscribed to topic " + @params.Topic);
             }
         }
 

@@ -85,7 +85,8 @@ namespace WalletConnectSharp.Crypto
         /// <param name="storage">The storage module to use to load the keychain from</param>
         public Crypto(IKeyValueStorage storage)
         {
-            storage ??= new FileSystemStorage();
+            if (storage == null)
+                throw new ArgumentException("storage must be non-null");
 
             this.KeyChain = new KeyChain(storage);
             this.Storage = storage;
@@ -97,9 +98,7 @@ namespace WalletConnectSharp.Crypto
         /// <param name="keyChain">The keychain to use for this crypto module</param>
         public Crypto(IKeyChain keyChain)
         {
-            keyChain ??= new KeyChain(new FileSystemStorage());
-
-            this.KeyChain = keyChain;
+            this.KeyChain = keyChain ?? throw new ArgumentException("keyChain must be non-null");
             this.Storage = keyChain.Storage;
         }
 

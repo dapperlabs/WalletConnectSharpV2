@@ -8,6 +8,13 @@ namespace WalletConnectSharp.Storage.Interfaces
     public interface IKeyValueStorage
     {
         /// <summary>
+        /// Initialize the storage. This should load any data or prepare any connection required by the
+        /// storage module
+        /// </summary>
+        /// <returns></returns>
+        Task Init();
+        
+        /// <summary>
         /// The GetKeys functions returns al the keys that are currently stored.
         /// </summary>
         /// <returns> Returns all currently stored keys</returns>
