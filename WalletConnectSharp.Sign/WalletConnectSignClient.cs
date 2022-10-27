@@ -109,7 +109,7 @@ namespace WalletConnectSharp.Sign
             return Engine.Connect(@params);
         }
 
-        public Task<PairingStruct> Pair(PairParams pairParams)
+        public Task<PendingPairing> Pair(PairParams pairParams)
         {
             return Engine.Pair(pairParams);
         }

@@ -143,7 +143,7 @@ namespace WalletConnectSharp.Network.Websocket
             }
             catch (Exception e)
             {
-                Events.Trigger("register_error", e);
+                Events.Trigger(WebsocketConnectionEvents.RegisterError, e);
                 OnClose(new DisconnectionInfo(DisconnectionType.Error, WebSocketCloseStatus.Empty, e.Message, null, e));
 
                 throw;
@@ -157,13 +157,13 @@ namespace WalletConnectSharp.Network.Websocket
 
             this._socket = socket;
             this._registering = false;
-            Events.Trigger("open", _socket);
+            Events.Trigger(WebsocketConnectionEvents.Open, _socket);
         }
 
         private void OnDisconnect(DisconnectionInfo obj)
         {
             if (obj.Exception != null)
-                Events.Trigger("error", obj.Exception);
+                Events.Trigger(WebsocketConnectionEvents.Error, obj.Exception);
             
             OnClose(obj);
         }
@@ -176,7 +176,7 @@ namespace WalletConnectSharp.Network.Websocket
             //_socket.Dispose();
             this._socket = null;
             this._registering = false;
-            Events.Trigger("close", obj);
+            Events.Trigger(WebsocketConnectionEvents.Close, obj);
         }
 
         private void OnPayload(ResponseMessage obj)
@@ -195,7 +195,7 @@ namespace WalletConnectSharp.Network.Websocket
 
             if (string.IsNullOrWhiteSpace(json)) return;
 
-            Events.Trigger("payload", json);
+            Events.Trigger(WebsocketConnectionEvents.Payload, json);
         }
 
         public async Task Close()
@@ -277,7 +277,7 @@ namespace WalletConnectSharp.Network.Websocket
             }, default(T));
 
             //Trigger the payload event, converting the new JsonRpcResponse object to JSON string
-            Events.Trigger("payload", JsonConvert.SerializeObject(payload));
+            Events.Trigger(WebsocketConnectionEvents.Payload, JsonConvert.SerializeObject(payload));
         }
     }
 }

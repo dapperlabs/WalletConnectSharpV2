@@ -1,12 +1,11 @@
-using WalletConnectSharp.Examples.Examples;
-
 namespace WalletConnectSharp.Examples;
 
 public class Program
 {
     private static readonly IExample[] Examples = new IExample[]
     {
-        new SimpleExample()
+        new SimpleExample(),
+        new BiDirectional()
     };
 
     private static void ShowHelp()

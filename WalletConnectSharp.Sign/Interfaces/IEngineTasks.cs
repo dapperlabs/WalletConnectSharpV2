@@ -8,7 +8,7 @@ namespace WalletConnectSharp.Sign.Interfaces
     {
         Task<ConnectedData> Connect(ConnectParams @params);
 
-        Task<PairingStruct> Pair(PairParams pairParams);
+        Task<PendingPairing> Pair(PairParams pairParams);
 
         Task<IApprovedData> Approve(ApproveParams @params);
 

@@ -61,6 +61,11 @@ namespace WalletConnectSharp.Core
                 options.Storage = new FileSystemStorage();
             }
 
+            if (options.KeyChain == null)
+            {
+                options.KeyChain = new KeyChain(options.Storage);
+            }
+
             ProjectId = options.ProjectId;
             RelayUrl = options.RelayUrl;
             Crypto = new Crypto.Crypto(options.KeyChain);

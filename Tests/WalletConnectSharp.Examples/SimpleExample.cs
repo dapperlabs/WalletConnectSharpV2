@@ -2,7 +2,7 @@ using WalletConnectSharp.Sign;
 using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Sign.Models.Engine;
 
-namespace WalletConnectSharp.Examples.Examples;
+namespace WalletConnectSharp.Examples;
 
 public class SimpleExample : IExample
 {

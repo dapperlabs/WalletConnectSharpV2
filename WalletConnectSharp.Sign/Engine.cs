@@ -74,12 +74,12 @@ namespace WalletConnectSharp.Sign
                 if (this.Client.Session.Keys.Contains(topic))
                 {
                     await PrivateThis.DeleteSession(topic);
-                    this.Client.Events.Trigger("session_expire", topic);
+                    this.Client.Events.Trigger(EngineEvents.SessionExpire, topic);
                 } 
                 else if (this.Client.Pairing.Keys.Contains(topic))
                 {
                     await PrivateThis.DeletePairing(topic);
-                    this.Client.Events.Trigger("pairing_expire", topic);
+                    this.Client.Events.Trigger(EngineEvents.PairingExpire, topic);
                 }
             } 
             else if (target.Id != null)
@@ -407,7 +407,7 @@ namespace WalletConnectSharp.Sign
                     RequiredNamespaces = @params.RequiredNamespaces
                 };
                 await PrivateThis.SetProposal(id, proposal);
-                this.Client.Events.Trigger("session_proposal", new JsonRpcRequest<ProposalStruct>()
+                this.Client.Events.Trigger(EngineEvents.SessionProposal, new JsonRpcRequest<ProposalStruct>()
                 {
                     Id = id,
                     Params = proposal
@@ -426,7 +426,7 @@ namespace WalletConnectSharp.Sign
             if (payload.IsError)
             {
                 await this.Client.Proposal.Delete(id, ErrorResponse.FromErrorType(ErrorType.USER_DISCONNECTED));
-                this.Events.Trigger("session_connect", payload);
+                this.Events.Trigger(EngineEvents.SessionConnect, payload);
             }
             else
             {
@@ -476,7 +476,7 @@ namespace WalletConnectSharp.Sign
                     }
                 };
                 await PrivateThis.SendResult<SessionSettle, bool>(payload.Id, topic, true);
-                this.Events.Trigger("session_connect", session);
+                this.Events.Trigger(EngineEvents.SessionConnect, session);
             }
             catch (WalletConnectException e)
             {
@@ -520,7 +520,7 @@ namespace WalletConnectSharp.Sign
                 });
 
                 await PrivateThis.SendResult<SessionUpdate, bool>(id, topic, true);
-                this.Client.Events.Trigger("session_update", new SessionUpdateEvent()
+                this.Client.Events.Trigger(EngineEvents.SessionUpdate, new SessionUpdateEvent()
                 {
                     Id = id,
                     Topic = topic,
@@ -550,7 +550,7 @@ namespace WalletConnectSharp.Sign
                 });
                 await PrivateThis.SetExpiry(topic, Clock.CalculateExpiry(SessionExpiry));
                 await PrivateThis.SendResult<SessionExtend, bool>(id, topic, true);
-                this.Client.Events.Trigger("session_extend", new SessionEvent()
+                this.Client.Events.Trigger(EngineEvents.SessionExtend, new SessionEvent()
                 {
                     Id = id,
                     Topic = topic
@@ -578,7 +578,7 @@ namespace WalletConnectSharp.Sign
                     Topic = topic
                 });
                 await PrivateThis.SendResult<SessionPing, bool>(id, topic, true);
-                this.Client.Events.Trigger("session_ping", new SessionEvent()
+                this.Client.Events.Trigger(EngineEvents.SessionPing, new SessionEvent()
                 {
                     Id = id,
                     Topic = topic
@@ -612,7 +612,7 @@ namespace WalletConnectSharp.Sign
                 });
 
                 await PrivateThis.SendResult<PairingPing, bool>(id, topic, true);
-                this.Client.Events.Trigger("pairing_ping", new SessionEvent()
+                this.Client.Events.Trigger(EngineEvents.PairingPing, new SessionEvent()
                 {
                     Topic = topic,
                     Id = id
@@ -648,7 +648,7 @@ namespace WalletConnectSharp.Sign
 
                 await PrivateThis.SendResult<SessionDelete, bool>(id, topic, true);
                 await PrivateThis.DeleteSession(topic);
-                this.Client.Events.Trigger("session_delete", new SessionEvent()
+                this.Client.Events.Trigger(EngineEvents.SessionDelete, new SessionEvent()
                 {
                     Topic = topic,
                     Id = id
@@ -673,7 +673,7 @@ namespace WalletConnectSharp.Sign
 
                 await PrivateThis.SendResult<PairingDelete, bool>(id, topic, true);
                 await PrivateThis.DeletePairing(topic);
-                this.Client.Events.Trigger("pairing_delete", new SessionEvent()
+                this.Client.Events.Trigger(EngineEvents.PairingDelete, new SessionEvent()
                 {
                     Topic = topic,
                     Id = id
@@ -697,7 +697,7 @@ namespace WalletConnectSharp.Sign
                     ChainId = @params.ChainId,
                     Request = @params.Request
                 });
-                this.Client.Events.Trigger("session_request", new SessionRequestEvent<T>()
+                this.Client.Events.Trigger(EngineEvents.SessionRequest, new SessionRequestEvent<T>()
                 {
                     Topic = topic,
                     Id = id,
@@ -729,7 +729,7 @@ namespace WalletConnectSharp.Sign
                     ChainId = @params.ChainId,
                     Event = @params.Event
                 });
-                this.Client.Events.Trigger("session_event", new EmitEvent<T>()
+                this.Client.Events.Trigger(EngineEvents.SessionEvent, new EmitEvent<T>()
                 {
                     Topic = topic,
                     Id = id,
@@ -749,7 +749,7 @@ namespace WalletConnectSharp.Sign
             var protocol = uri.Substring(0, pathStart);
 
             string path;
-            if (pathEnd != null) path = uri.Substring(pathStart + 1, (int)pathEnd);
+            if (pathEnd != null) path = uri.Substring(pathStart + 1, (int)pathEnd - (pathStart + 1));
             else path = uri.Substring(pathStart + 1);
 
             var requiredValues = path.Split("@");
@@ -766,7 +766,7 @@ namespace WalletConnectSharp.Sign
                 Relay = new ProtocolOptions()
                 {
                     Protocol = queryParams["relay-protocol"],
-                    Data = queryParams["relay-data"]
+                    Data = queryParams.ContainsKey("relay-data") ? queryParams["relay-data"] : null,
                 }
             };
 
@@ -914,7 +914,7 @@ namespace WalletConnectSharp.Sign
         }
 
 
-        public async Task<PairingStruct> Pair(PairParams pairParams)
+        public async Task<PendingPairing> Pair(PairParams pairParams)
         {
             IsInitialized();
             await PrivateThis.IsValidPair(pairParams);
@@ -932,6 +932,11 @@ namespace WalletConnectSharp.Sign
                 Active = false,
             };
 
+            var pendingPairing = new PendingPairing(Client)
+            {
+                PairingData = pairing
+            };
+
             await this.Client.Pairing.Set(topic, pairing);
             await this.Client.Core.Crypto.SetSymKey(symKey, topic);
             await this.Client.Core.Relayer.Subscribe(topic, new SubscribeOptions()
@@ -940,7 +945,7 @@ namespace WalletConnectSharp.Sign
             });
             await PrivateThis.SetExpiry(topic, expiry);
 
-            return pairing;
+            return pendingPairing;
         }
 
         public async Task<IApprovedData> Approve(ApproveParams @params)
