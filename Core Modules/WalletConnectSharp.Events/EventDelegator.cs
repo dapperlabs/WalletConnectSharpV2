@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model;
 using WalletConnectSharp.Events.Model;
 
 namespace WalletConnectSharp.Events
@@ -22,6 +23,10 @@ namespace WalletConnectSharp.Events
 
         public string Name { get; private set; }
         public string Context { get; private set; }
+
+        public EventDelegator() : this(new IsolatedModule())
+        {
+        }
 
         public EventDelegator(IModule parent)
         {

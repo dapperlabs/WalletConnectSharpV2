@@ -8,10 +8,8 @@ using Xunit;
 
 namespace WalletConnectSharp.Events.Tests
 {
-    public class EventDelegatorTests : IClassFixture<MockService>
+    public class EventDelegatorTests
     {
-        private MockService _service;
-        
         interface ITest
         {
             public int test1 { get; }
@@ -27,16 +25,11 @@ namespace WalletConnectSharp.Events.Tests
         {
             public T data;
         }
-
-        public EventDelegatorTests(MockService service)
-        {
-            _service = service;
-        }
         
         [Fact]
         public async void AsyncEventsPropagate()
         {
-            var events = new EventDelegator(_service);
+            var events = new EventDelegator();
 
             TaskCompletionSource<string> eventCallbackTask = new TaskCompletionSource<string>();
 
@@ -60,7 +53,7 @@ namespace WalletConnectSharp.Events.Tests
         [Fact]
         public void ListenForOnce()
         {
-            EventDelegator events = new EventDelegator(_service);
+            EventDelegator events = new EventDelegator();
 
             TestEventData result1 = null;
             
@@ -89,7 +82,7 @@ namespace WalletConnectSharp.Events.Tests
         [Fact]
         public void RemoveListener()
         {
-            EventDelegator events = new EventDelegator(_service);
+            EventDelegator events = new EventDelegator();
 
             events.ListenFor<TestEventData>("abc", Callback);
             
@@ -106,7 +99,7 @@ namespace WalletConnectSharp.Events.Tests
         [Fact]
         public void InheritanceEventsPropagate()
         {
-            EventDelegator events = new EventDelegator(_service);
+            EventDelegator events = new EventDelegator();
 
             TestEventData result1 = null;
             ITest result2 = null;
@@ -158,7 +151,7 @@ namespace WalletConnectSharp.Events.Tests
         [Fact]
         public void ListenAndDeserializeJson()
         {
-            EventDelegator events = new EventDelegator(_service);
+            EventDelegator events = new EventDelegator();
 
             TestEventData result1 = null;
             
