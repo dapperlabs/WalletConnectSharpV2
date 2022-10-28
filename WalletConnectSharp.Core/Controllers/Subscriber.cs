@@ -30,7 +30,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "subscription";
+                return $"{_relayer.Name}-subscription";
             }
         }
 
@@ -38,7 +38,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "subscription";
+                return Name;
             }
         }
 
@@ -116,9 +116,9 @@ namespace WalletConnectSharp.Core.Controllers
 
         public Subscriber(IRelayer relayer)
         {
-            Events = new EventDelegator(this);
-
             _relayer = relayer;
+            
+            Events = new EventDelegator(this);
         }
         
         public async Task Init()

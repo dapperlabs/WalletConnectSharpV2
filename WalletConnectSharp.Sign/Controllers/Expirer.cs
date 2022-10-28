@@ -25,7 +25,7 @@ namespace WalletConnectSharp.Sign.Controllers
         {
             get
             {
-                return "expirer";
+                return $"{_core.Name}-expirer";
             }
         }
 

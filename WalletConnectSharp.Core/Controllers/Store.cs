@@ -63,10 +63,12 @@ namespace WalletConnectSharp.Core.Controllers
 
         public Store(ICore core, string name, string storagePrefix = null, Func<TValue, TKey> getKey = null)
         {
-            Name = name;
-            Context = name;
             Core = core;
 
+            name = $"{core.Name}-{name}";
+            Name = name;
+            Context = name;
+            
             if (storagePrefix == null)
                 StoragePrefix = WalletConnectSharp.Core.Core.STORAGE_PREFIX;
             else

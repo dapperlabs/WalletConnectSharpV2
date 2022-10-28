@@ -32,7 +32,7 @@ namespace WalletConnectSharp.Sign
 
         private IEnginePrivate PrivateThis => this;
 
-        public string Name => "engine";
+        public string Name => $"{Client.Name}-engine";
 
         public string Context
         {

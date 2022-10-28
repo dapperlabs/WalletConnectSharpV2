@@ -23,7 +23,7 @@ namespace WalletConnectSharp.Sign.Controllers
         {
             get
             {
-                return $"history-of-type-{typeof(T).Name}";
+                return $"{_core.Name}-history-of-type-{typeof(T).Name}";
             }
         }
 

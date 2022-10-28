@@ -18,6 +18,8 @@ namespace WalletConnectSharp.Events
     /// </summary>
     public class EventDelegator : IModule
     {
+        private static HashSet<string> contextInstances = new HashSet<string>();
+
         public string Name { get; private set; }
         public string Context { get; private set; }
 
@@ -25,6 +27,12 @@ namespace WalletConnectSharp.Events
         {
             this.Name = parent + ":event-delegator";
             this.Context = parent.Context;
+
+            if (contextInstances.Contains(Context))
+                throw new ArgumentException(
+                    $"The module {parent.Name} with context {Context} is attempting to create a new EventDelegator that overlaps with an existing EventDelegator");
+            
+            contextInstances.Add(Context);
         }
 
         /// <summary>

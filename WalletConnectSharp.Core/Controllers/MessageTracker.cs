@@ -15,7 +15,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "messages";
+                return $"{_core.Name}-messages";
             }
         }
 
@@ -23,7 +23,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "messages";
+                return Name;
             }
         }
 

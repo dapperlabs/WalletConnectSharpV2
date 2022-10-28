@@ -68,14 +68,19 @@ namespace WalletConnectSharp.Sign
                 Metadata = options.Metadata;
             
             Options = options;
-            
+
             if (string.IsNullOrWhiteSpace(options.Name))
-                Name = CONTEXT;
-            else
-                Name = options.Name;
+            {
+                if (!string.IsNullOrWhiteSpace(options.Metadata.Name))
+                    options.Name = $"{Metadata.Name}-{CONTEXT}";
+                else
+                    throw new ArgumentException("The Name field in Metadata must be set");
+            }
+            
+            Name = options.Name;
 
             if (string.IsNullOrWhiteSpace(options.LoggerContext))
-                Context = CONTEXT;
+                Context = $"{Metadata.Name}-{CONTEXT}";
             else
                 Context = options.LoggerContext;
 

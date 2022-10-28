@@ -15,12 +15,13 @@ namespace WalletConnectSharp.Core
     public class Core : ICore
     {
         public static readonly string STORAGE_PREFIX = ICore.Protocol + "@" + ICore.Version + ":core:";
-        
+
+        private string _optName;
         public string Name
         {
             get
             {
-                return "core";
+                return $"{_optName}-core";
             }
         }
 
@@ -28,7 +29,7 @@ namespace WalletConnectSharp.Core
         {
             get
             {
-                return "core";
+                return Name;
             }
         }
 
@@ -71,6 +72,7 @@ namespace WalletConnectSharp.Core
             Crypto = new Crypto.Crypto(options.KeyChain);
             Storage = options.Storage;
             HeartBeat = new HeartBeat();
+            _optName = options.Name;
             Events = new EventDelegator(this);
             
             Relayer = new Relayer(new RelayerOptions()

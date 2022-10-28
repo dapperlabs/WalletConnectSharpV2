@@ -27,7 +27,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "relayer";
+                return $"{Core.Name}-relayer";
             }
         }
 
@@ -35,7 +35,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "relayer";
+                return Name;
             }
         }
 
@@ -54,8 +54,8 @@ namespace WalletConnectSharp.Core.Controllers
         
         public Relayer(RelayerOptions opts)
         {
-            Events = new EventDelegator(this);
             Core = opts.Core;
+            Events = new EventDelegator(this);
             Messages = new MessageTracker(Core);
             Subscriber = new Subscriber(this);
             Publisher = new Publisher(this);

@@ -22,7 +22,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "publisher";
+                return $"{Relayer.Name}-publisher";
             }
         }
 
@@ -30,7 +30,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "publisher";
+                return Name;
             }
         }
 
@@ -38,8 +38,8 @@ namespace WalletConnectSharp.Core.Controllers
 
         public Publisher(IRelayer relayer)
         {
-            Events = new EventDelegator(this);
             Relayer = relayer;
+            Events = new EventDelegator(this);
             
             RegisterEventListeners();
         }

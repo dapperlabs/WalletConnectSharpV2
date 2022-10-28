@@ -17,12 +17,14 @@ namespace WalletConnectSharp.Core.Controllers
         public CancellationToken HeartBeatCancellationToken { get; private set; }
         
         public int Interval { get; }
+        
+        public readonly Guid contextGuid = Guid.NewGuid();
 
         public string Name
         {
             get
             {
-                return "heartbeat";
+                return $"heartbeat-{contextGuid}";
             }
         }
 
@@ -30,7 +32,7 @@ namespace WalletConnectSharp.Core.Controllers
         {
             get
             {
-                return "heartbeat";
+                return Name;
             }
         }
 
