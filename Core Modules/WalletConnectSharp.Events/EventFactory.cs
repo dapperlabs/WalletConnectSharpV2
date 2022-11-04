@@ -15,7 +15,7 @@ namespace WalletConnectSharp.Events
         private IEventProvider<T> _eventProvider;
         public string Context { get; private set; }
 
-        public EventFactory(string context)
+        private EventFactory(string context)
         {
             this.Context = context;
         }

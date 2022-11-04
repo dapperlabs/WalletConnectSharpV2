@@ -1,6 +1,9 @@
+using System;
+
 namespace WalletConnectSharp.Common
 {
-    public interface IModule
+    // TODO Make IModule implement IDisposable, enforce everywhere
+    public interface IModule /* : IDisposable */
     {
         string Name { get; }
         
