@@ -1,8 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using WalletConnectSharp.Common;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Crypto;
 using WalletConnectSharp.Events;
+using WalletConnectSharp.Network.Models;
 using WalletConnectSharp.Sign.Controllers;
 using WalletConnectSharp.Sign.Interfaces;
 using WalletConnectSharp.Sign.Models;
@@ -124,9 +126,49 @@ namespace WalletConnectSharp.Sign
             return Engine.Approve(@params);
         }
 
+        public Task<IApprovedData> Approve(ProposalStruct proposalStruct, params string[] approvedAddresses)
+        {
+            return Engine.Approve(proposalStruct.ApproveProposal(approvedAddresses));
+        }
+
         public Task Reject(RejectParams @params)
         {
             return Engine.Reject(@params);
+        }
+        
+        public Task Reject(ProposalStruct @params, string message = null)
+        {
+            if (@params.Id == null)
+                throw new ArgumentException("No proposal Id given");
+
+            if (message == null)
+                message = "Proposal denied by remote host";
+
+            var rejectParams = new RejectParams()
+            {
+                Id = (long) @params.Id,
+                Reason = new ErrorResponse()
+                {
+                    Message = message,
+                    Code = (long) ErrorType.USER_DISCONNECTED,
+                }
+            };
+            
+            return Reject(rejectParams);
+        }
+        
+        public Task Reject(ProposalStruct @params, ErrorResponse error)
+        {
+            if (@params.Id == null)
+                throw new ArgumentException("No proposal Id given");
+
+            var rejectParams = new RejectParams()
+            {
+                Id = (long) @params.Id,
+                Reason = error
+            };
+            
+            return Reject(rejectParams);
         }
 
         public Task<IAcknowledgement> Update(UpdateParams @params)

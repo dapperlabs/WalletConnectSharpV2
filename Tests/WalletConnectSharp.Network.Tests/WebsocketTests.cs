@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using WalletConnectSharp.Common.Model.Relay;
 using WalletConnectSharp.Events;
+using WalletConnectSharp.Network.Models;
 using WalletConnectSharp.Network.Tests.Models;
 using WalletConnectSharp.Network.Websocket;
 using Websocket.Client;
@@ -11,12 +13,16 @@ namespace WalletConnectSharp.Network.Tests
 
      public class WebsocketTests
     {
-        private static readonly TestWakuRequest TEST_WAKU_REQUEST =
-            new TestWakuRequest("ca838d59a3a3fe3824dab9ca7882ac9a2227c5d0284c88655b261a2fe85db270");
-        private static readonly TestWakuRequest TEST_BAD_WAKU_REQUEST =
-            new TestWakuRequest("");
+        private static readonly JsonRpcRequest<TopicData> TEST_WAKU_REQUEST =
+            new JsonRpcRequest<TopicData>(RelayProtocols.DefaultProtocol.Subscribe, new TopicData()
+            {
+                Topic = "ca838d59a3a3fe3824dab9ca7882ac9a2227c5d0284c88655b261a2fe85db270"
+            });
+        private static readonly JsonRpcRequest<TopicData> TEST_BAD_WAKU_REQUEST =
+            new JsonRpcRequest<TopicData>(RelayProtocols.DefaultProtocol.Subscribe, new TopicData());
+        
         private static readonly string TEST_RANDOM_HOST = "random.domain.that.does.not.exist";
-        private static readonly string GOOD_WS_URL = "wss://staging.walletconnect.org";
+        private static readonly string GOOD_WS_URL = "wss://staging.walletconnect.com";
         private static readonly string BAD_WS_URL = "ws://" + TEST_RANDOM_HOST;
 
         [Fact]

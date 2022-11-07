@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace WalletConnectSharp.Core.Models.Relay
+namespace WalletConnectSharp.Common.Model.Relay
 {
     public abstract class RelayProtocols
     {
@@ -144,5 +144,7 @@ namespace WalletConnectSharp.Core.Models.Relay
                 }
             }
         }
+
+        public static RelayProtocols DefaultProtocol => GetRelayProtocol(Default);
     }
 }

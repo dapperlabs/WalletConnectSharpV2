@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Relay;
 using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Models.Relay;
 using WalletConnectSharp.Events;

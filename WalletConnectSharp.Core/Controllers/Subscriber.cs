@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Relay;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models.Heartbeat;
 using WalletConnectSharp.Core.Models.Relay;

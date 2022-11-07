@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using WalletConnectSharp.Common.Model.Relay;
 using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models.Heartbeat;

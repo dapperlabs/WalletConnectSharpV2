@@ -18,8 +18,17 @@ namespace WalletConnectSharp.Network
         private EventDelegator _delegator;
         private bool _hasRegisteredEventListeners;
         private Guid _context;
+        private bool _connectingStarted;
         private TaskCompletionSource<bool> Connecting = new TaskCompletionSource<bool>();
 
+        public bool IsConnecting
+        {
+            get
+            {
+                return _connectingStarted && !Connecting.Task.IsCompleted;
+            }
+        }
+        
         public IJsonRpcConnection Connection
         {
             get
@@ -73,6 +82,7 @@ namespace WalletConnectSharp.Network
             
             // Reset connecting task
             Connecting = new TaskCompletionSource<bool>();
+            _connectingStarted = true;
 
             await this._connection.Open(connection);
             FinalizeConnection(this._connection);
@@ -88,6 +98,7 @@ namespace WalletConnectSharp.Network
             
             // Reset connecting task
             Connecting = new TaskCompletionSource<bool>();
+            _connectingStarted = true;
 
             await connection.Open();
 
@@ -100,6 +111,7 @@ namespace WalletConnectSharp.Network
             RegisterEventListeners();
             Events.Trigger(ProviderEvents.Connect, connection);
             Connecting.SetResult(true);
+            _connectingStarted = false;
         }
 
         public async Task Connect<T>(T @params)
@@ -135,10 +147,9 @@ namespace WalletConnectSharp.Network
 
         public async Task<TR> Request<T, TR>(IRequestArguments<T> requestArgs, object context = null)
         {
-            if (!Connecting.Task.IsCompleted)
+            if (IsConnecting)
                 await Connecting.Task;
-            
-            if (!_connection.Connected)
+            else if (!_connectingStarted && !_connection.Connected)
             {
                 await Connect(_connection);
             }
