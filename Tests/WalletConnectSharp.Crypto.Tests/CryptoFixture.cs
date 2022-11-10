@@ -9,14 +9,13 @@ namespace WalletConnectSharp.Crypto.Tests
         public Crypto PeerA { get; private set; }
         
         public Crypto PeerB { get; private set; }
-        
+
+        private TaskCompletionSource<bool> _initCompleted = new TaskCompletionSource<bool>();
+
         public CryptoFixture()
         {
-            var storageA = new FileSystemStorage(".tests.peer.a");
-            var storageB = new FileSystemStorage(".tests.peer.b");
-            
-            PeerA = new Crypto(storageA);
-            PeerB = new Crypto(storageB);
+            PeerA = new Crypto();
+            PeerB = new Crypto();
 
             Init();
         }
@@ -24,6 +23,13 @@ namespace WalletConnectSharp.Crypto.Tests
         private async void Init()
         {
             await Task.WhenAll(PeerA.Init(), PeerB.Init());
+            
+            _initCompleted.SetResult(true);
+        }
+        
+        public Task WaitForModulesReady()
+        {
+            return _initCompleted.Task;
         }
         
         public void Dispose()

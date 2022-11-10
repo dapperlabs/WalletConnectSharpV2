@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Relay;
 using WalletConnectSharp.Core.Models.Relay;
 using WalletConnectSharp.Events.Interfaces;
 using WalletConnectSharp.Network;
@@ -8,8 +9,8 @@ namespace WalletConnectSharp.Core.Interfaces
 {
     public interface IRelayer : IEvents, IModule
     {
-        public const string Protocol = "wc";
-        public const int Version = 2;
+        public const string Protocol = RelayConstants.Protocol;
+        public const int Version = RelayConstants.Version;
         
         public ICore Core { get; }
         

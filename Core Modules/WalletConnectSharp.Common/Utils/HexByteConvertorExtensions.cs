@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace WalletConnectSharp.Common
+namespace WalletConnectSharp.Common.Utils
 {
     public static class HexByteConvertorExtensions
     {

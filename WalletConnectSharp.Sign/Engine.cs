@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Errors;
 using WalletConnectSharp.Common.Model.Relay;
 using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Models.Relay;
@@ -821,6 +822,9 @@ namespace WalletConnectSharp.Sign
             TaskCompletionSource<SessionStruct> approvalTask = new TaskCompletionSource<SessionStruct>();
             this.Events.ListenForOnce<SessionStruct>("session_connect", async (sender, e) =>
             {
+                if (approvalTask.Task.IsCompleted)
+                    return;
+                
                 var session = e.EventData;
                 session.Self.PublicKey = publicKey;
                 var completeSession = new SessionStruct()
@@ -848,6 +852,8 @@ namespace WalletConnectSharp.Sign
             
             this.Events.ListenForOnce<JsonRpcResponse<SessionProposeResponse>>("session_connect", (sender, e) =>
             {
+                if (approvalTask.Task.IsCompleted)
+                    return;
                 if (e.EventData.IsError)
                 {
                     approvalTask.SetException(e.EventData.Error.ToException());

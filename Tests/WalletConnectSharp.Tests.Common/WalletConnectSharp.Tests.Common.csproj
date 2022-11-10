@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net5.0;net6.0;netcoreapp3.1;netstandard2.1</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Core Modules\WalletConnectSharp.Crypto\WalletConnectSharp.Crypto.csproj" />
+      <ProjectReference Include="..\..\Core Modules\WalletConnectSharp.Network\WalletConnectSharp.Network.csproj" />
+    </ItemGroup>
+
+</Project>

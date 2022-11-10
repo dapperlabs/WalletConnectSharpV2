@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
+using WalletConnectSharp.Common.Utils;
 
-namespace WalletConnectSharp.Common
+namespace WalletConnectSharp.Common.Model.Errors
 {
     public static class SdkErrors
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Web;
 
-namespace WalletConnectSharp.Common
+namespace WalletConnectSharp.Common.Utils
 {
     public static class Extensions
     {

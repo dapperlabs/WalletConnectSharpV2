@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using NSec.Cryptography;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Errors;
 using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Crypto.Encoder;
 using WalletConnectSharp.Crypto.Interfaces;
@@ -78,6 +79,7 @@ namespace WalletConnectSharp.Crypto
         public IKeyValueStorage Storage { get; private set; }
 
         private bool _initialized;
+        private bool _newStorage;
 
         /// <summary>
         /// Create a new instance of the crypto module, with a given storage module.
@@ -105,8 +107,9 @@ namespace WalletConnectSharp.Crypto
         /// <summary>
         /// Create a new instance of the crypto module using an empty keychain stored in-memory using a Dictionary
         /// </summary>
-        public Crypto() : this(new FileSystemStorage())
+        public Crypto() : this(new InMemoryStorage())
         {
+            _newStorage = true;
         }
 
         /// <summary>
@@ -119,6 +122,9 @@ namespace WalletConnectSharp.Crypto
         {
             if (!this._initialized)
             {
+                if (_newStorage)
+                    await this.Storage.Init();
+                
                 await this.KeyChain.Init();
                 this._initialized = true;
             }

@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Errors;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
 using WalletConnectSharp.Network.Models;
@@ -20,6 +21,7 @@ namespace WalletConnectSharp.Network
         private Guid _context;
         private bool _connectingStarted;
         private TaskCompletionSource<bool> Connecting = new TaskCompletionSource<bool>();
+        private long _lastId;
 
         public bool IsConnecting
         {
@@ -180,7 +182,7 @@ namespace WalletConnectSharp.Network
                     }
                 });
             
-            Events.ListenFor(request.Id.ToString(), delegate(object sender, GenericEvent<Exception> @event)
+            Events.ListenFor(request.Id.ToString(), delegate(object sender, GenericEvent<WalletConnectException> @event)
             {
                 var exception = @event.EventData;
                 if (exception != null)
@@ -188,8 +190,9 @@ namespace WalletConnectSharp.Network
                     requestTask.SetException(exception);
                 }
             });
-            
 
+            _lastId = request.Id;
+            
             await _connection.SendRequest(request, context);
 
             await requestTask.Task;
@@ -227,6 +230,9 @@ namespace WalletConnectSharp.Network
             {
                 throw new IOException("Invalid payload: " + json);
             }
+
+            if (payload.Id == 0)
+                payload.Id = _lastId;
             
             Events.Trigger(ProviderEvents.Payload, payload);
 
@@ -236,7 +242,15 @@ namespace WalletConnectSharp.Network
             }
             else
             {
-                Events.Trigger(payload.Id.ToString(), json);
+                if (payload.IsError)
+                {
+                    var errorPayload = JsonConvert.DeserializeObject<JsonRpcError>(json);
+                    Events.Trigger(payload.Id.ToString(), errorPayload.Error.ToException());
+                }
+                else
+                {
+                    Events.Trigger(payload.Id.ToString(), json);
+                }
             }
         }
     }

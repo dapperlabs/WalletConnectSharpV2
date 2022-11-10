@@ -1,12 +1,11 @@
 ﻿using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Storage;
+using WalletConnectSharp.Tests.Common;
 
 namespace WalletConnectSharp.Sign.Test
 {
     public class TwoClientsFixture
     {
-        private const string TestProjectId = "39f3dc0a2c604ec9885799f9fc5feb7c";
-        
         public WalletConnectSignClient ClientA { get; private set; }
         public WalletConnectSignClient ClientB { get; private set; }
         
@@ -17,7 +16,7 @@ namespace WalletConnectSharp.Sign.Test
         {
             OptionsA = new SignClientOptions()
             {
-                ProjectId = TestProjectId,
+                ProjectId = TestValues.TestProjectId,
                 Metadata = new Metadata()
                 {
                     Description = "An example dapp to showcase WalletConnectSharpv2",
@@ -31,7 +30,7 @@ namespace WalletConnectSharp.Sign.Test
             
             OptionsB = new SignClientOptions()
             {
-                ProjectId = TestProjectId,
+                ProjectId = TestValues.TestProjectId,
                 Metadata = new Metadata()
                 {
                     Description = "An example wallet to showcase WalletConnectSharpv2",

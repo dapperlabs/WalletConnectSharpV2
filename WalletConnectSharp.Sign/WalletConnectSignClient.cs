@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Errors;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Crypto;
 using WalletConnectSharp.Events;

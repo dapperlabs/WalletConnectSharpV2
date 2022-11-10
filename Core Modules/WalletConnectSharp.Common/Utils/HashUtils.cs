@@ -1,8 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using WalletConnectSharp.Common;
 
-namespace WalletConnectSharp.Core.Utils
+namespace WalletConnectSharp.Common.Utils
 {
     public static class HashUtils
     {

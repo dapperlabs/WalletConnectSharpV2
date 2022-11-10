@@ -1,4 +1,4 @@
-namespace WalletConnectSharp.Common
+namespace WalletConnectSharp.Common.Model.Errors
 {
     public enum ErrorType : uint
     {

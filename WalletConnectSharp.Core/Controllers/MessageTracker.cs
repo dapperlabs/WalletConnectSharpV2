@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Errors;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Interfaces;
-using WalletConnectSharp.Core.Utils;
 
 namespace WalletConnectSharp.Core.Controllers
 {

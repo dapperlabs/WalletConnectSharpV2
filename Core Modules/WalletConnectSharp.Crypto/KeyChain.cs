@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Errors;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Crypto.Interfaces;
 using WalletConnectSharp.Storage.Interfaces;
 

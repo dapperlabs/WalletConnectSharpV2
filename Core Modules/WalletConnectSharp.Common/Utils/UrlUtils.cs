@@ -4,7 +4,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace WalletConnectSharp.Core.Utils
+namespace WalletConnectSharp.Common.Utils
 {
     public static class UrlUtils
     {

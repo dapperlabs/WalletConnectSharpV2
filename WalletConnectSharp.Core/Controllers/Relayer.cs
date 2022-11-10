@@ -3,10 +3,11 @@ using System.Collections.Specialized;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Model.Errors;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Core.Interfaces;
 using WalletConnectSharp.Core.Models.Relay;
 using WalletConnectSharp.Core.Models.Subscriber;
-using WalletConnectSharp.Core.Utils;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
 using WalletConnectSharp.Network;
@@ -18,9 +19,7 @@ namespace WalletConnectSharp.Core.Controllers
     public class Relayer : IRelayer
     {
         public static readonly string DEFAULT_RELAY_URL = "wss://relay.walletconnect.com/";
-
-        // TODO Pull this from assembly version
-        public static readonly string SDK_VERSION = "2.0.0-rc.1";
+        
         public EventDelegator Events { get; }
 
         public string Name
@@ -87,11 +86,11 @@ namespace WalletConnectSharp.Core.Controllers
         {
             return new JsonRpcProvider(
                 new WebsocketConnection(
-                    FormatRelayRpcUrl(
+                    RelayUrl.FormatRelayRpcUrl(
                         IRelayer.Protocol,
                         IRelayer.Version.ToString(),
                         relayUrl,
-                        SDK_VERSION,
+                        SDKConstants.SDK_VERSION,
                         projectId,
                         auth
                     )
@@ -175,37 +174,6 @@ namespace WalletConnectSharp.Core.Controllers
                 Result = true
             };
             await Provider.Connection.SendResult(response, this);
-        }
-
-        protected virtual string FormatUA(string protocol, string version, string sdkVersion)
-        {
-            var os = Environment.OSVersion.Platform.ToString();
-            var osVersion = Environment.OSVersion.Version.ToString();
-
-            var osInfo = string.Join("-", os, osVersion);
-            var environment = "WalletConnectSharpv2:" + Environment.Version;
-
-            var sdkType = "C#";
-
-            return string.Join("/", string.Join("-", protocol, version), string.Join("-", sdkType, sdkVersion), osInfo,
-                environment);
-        }
-
-        protected virtual string FormatRelayRpcUrl(string protocol, string version, string relayUrl, string sdkVersion,
-            string projectId, string auth)
-        {
-            var splitUrl = relayUrl.Split("?");
-            var ua = FormatUA(protocol, version, sdkVersion);
-
-            var currentParameters = UrlUtils.ParseQs(splitUrl.Length > 1 ? splitUrl[1] : "");
-            
-            currentParameters.Add("auth", auth);
-            currentParameters.Add("projectId", projectId);
-            currentParameters.Add("ua", ua);
-
-            var formattedParameters = UrlUtils.StringifyQs(currentParameters);
-
-            return splitUrl[0] + formattedParameters;
         }
 
         public async Task Publish(string topic, string message, PublishOptions opts = null)

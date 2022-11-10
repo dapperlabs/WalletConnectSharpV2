@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using WalletConnectSharp.Common.Utils;
 
-namespace WalletConnectSharp.Common
+namespace WalletConnectSharp.Common.Model.Errors
 {
     public class WalletConnectException : Exception
     {

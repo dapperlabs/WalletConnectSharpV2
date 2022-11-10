@@ -1,4 +1,4 @@
-namespace WalletConnectSharp.Common
+namespace WalletConnectSharp.Common.Utils
 {
     public static class Constants
     {
