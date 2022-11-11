@@ -1,41 +1,46 @@
-namespace WalletConnectSharp.Examples;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
-public class Program
+namespace WalletConnectSharp.Examples
 {
-    private static readonly IExample[] Examples = new IExample[]
+    public class Program
     {
-        new SimpleExample(),
-        new BiDirectional()
-    };
-
-    private static void ShowHelp()
-    {
-        Console.WriteLine("Please specify which example to run");
-        foreach (var e in Examples)
+        private static readonly IExample[] Examples = new IExample[]
         {
-            Console.WriteLine("    - " + e.Name);
-        }
-    }
+            new SimpleExample(),
+            new BiDirectional()
+        };
 
-    public static async Task Main(string[] args)
-    {
-        if (args.Length == 0)
+        private static void ShowHelp()
         {
-            ShowHelp();
-            return;
+            Console.WriteLine("Please specify which example to run");
+            foreach (var e in Examples)
+            {
+                Console.WriteLine("    - " + e.Name);
+            }
         }
 
-        var name = args[0];
-        var exampleArgs = args.Skip(1).ToArray();
-
-        var example = Examples.FirstOrDefault(e => e.Name.ToLower() == name);
-
-        if (example == null)
+        public static async Task Main(string[] args)
         {
-            ShowHelp();
-            return;
-        }
+            if (args.Length == 0)
+            {
+                ShowHelp();
+                return;
+            }
 
-        await example.Execute(exampleArgs);
+            var name = args[0];
+            var exampleArgs = args.Skip(1).ToArray();
+
+            var example = Examples.FirstOrDefault(e => e.Name.ToLower() == name);
+
+            if (example == null)
+            {
+                ShowHelp();
+                return;
+            }
+
+            await example.Execute(exampleArgs);
+        }
     }
 }

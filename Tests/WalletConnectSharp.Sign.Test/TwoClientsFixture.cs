@@ -1,4 +1,5 @@
-﻿using WalletConnectSharp.Sign.Models;
+﻿using System.Threading.Tasks;
+using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Storage;
 using WalletConnectSharp.Tests.Common;
 

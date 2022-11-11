@@ -1,8 +1,11 @@
-namespace WalletConnectSharp.Examples;
+using System.Threading.Tasks;
 
-public interface IExample
+namespace WalletConnectSharp.Examples
 {
-    string Name { get; }
+    public interface IExample
+    {
+        string Name { get; }
 
-    Task Execute(string[] args);
+        Task Execute(string[] args);
+    }
 }
