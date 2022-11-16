@@ -117,6 +117,14 @@ namespace WalletConnectSharp.Sign
             return Engine.Connect(@params);
         }
 
+        public Task<PendingPairing> Pair(string uri)
+        {
+            return Pair(new PairParams()
+            {
+                Uri = uri
+            });
+        }
+
         public Task<PendingPairing> Pair(PairParams pairParams)
         {
             return Engine.Pair(pairParams);
@@ -129,7 +137,7 @@ namespace WalletConnectSharp.Sign
 
         public Task<IApprovedData> Approve(ProposalStruct proposalStruct, params string[] approvedAddresses)
         {
-            return Engine.Approve(proposalStruct.ApproveProposal(approvedAddresses));
+            return Approve(proposalStruct.ApproveProposal(approvedAddresses));
         }
 
         public Task Reject(RejectParams @params)
@@ -145,17 +153,11 @@ namespace WalletConnectSharp.Sign
             if (message == null)
                 message = "Proposal denied by remote host";
 
-            var rejectParams = new RejectParams()
+            return Reject(@params, new ErrorResponse()
             {
-                Id = (long) @params.Id,
-                Reason = new ErrorResponse()
-                {
-                    Message = message,
-                    Code = (long) ErrorType.USER_DISCONNECTED,
-                }
-            };
-            
-            return Reject(rejectParams);
+                Message = message,
+                Code = (long) ErrorType.USER_DISCONNECTED,
+            });
         }
         
         public Task Reject(ProposalStruct @params, ErrorResponse error)
@@ -182,12 +184,17 @@ namespace WalletConnectSharp.Sign
             return Engine.Extend(@params);
         }
 
+        public Task<TR> Request<T, TR>(string method, string topic, T data, string chainId = null)
+        {
+            return Engine.Request<T, TR>(method, topic, data, chainId);
+        }
+
         public Task<TR> Request<T, TR>(RequestParams<T> @params)
         {
             return Engine.Request<T, TR>(@params);
         }
 
-        public Task Respond<T, TR>(RespondParams<TR> @params) where T : IWcMethod
+        public Task Respond<T, TR>(RespondParams<TR> @params)
         {
             return Engine.Respond<T, TR>(@params);
         }

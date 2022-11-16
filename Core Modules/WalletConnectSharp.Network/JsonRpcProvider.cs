@@ -170,6 +170,9 @@ namespace WalletConnectSharp.Network
             Events.ListenForAndDeserialize<JsonRpcResponse<TR>>(request.Id.ToString(),
                 delegate(object sender, GenericEvent<JsonRpcResponse<TR>> @event)
                 {
+                    if (requestTask.Task.IsCompleted)
+                        return;
+                    
                     var result = @event.EventData;
 
                     if (result.Error != null)
@@ -184,6 +187,9 @@ namespace WalletConnectSharp.Network
             
             Events.ListenFor(request.Id.ToString(), delegate(object sender, GenericEvent<WalletConnectException> @event)
             {
+                if (requestTask.Task.IsCompleted)
+                    return;
+                
                 var exception = @event.EventData;
                 if (exception != null)
                 {

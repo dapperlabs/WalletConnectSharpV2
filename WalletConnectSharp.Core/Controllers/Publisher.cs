@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common.Model.Relay;
 using WalletConnectSharp.Common.Utils;
@@ -51,8 +52,14 @@ namespace WalletConnectSharp.Core.Controllers
 
         private async void CheckQueue()
         {
-            foreach (var (_, @params) in queue)
+            // Unroll here so we don't deal with "collection modified" errors
+            var keys = queue.Keys.ToArray();
+            
+            foreach (var key in keys)
             {
+                if (!queue.ContainsKey(key)) continue;
+                var @params = queue[key];
+                
                 var hash = HashUtils.HashMessage(@params.Message);
                 await RpcPublish(@params.Topic, @params.Message, @params.Options.TTL, @params.Options.Relay,
                     @params.Options.Prompt, @params.Options.TTL);

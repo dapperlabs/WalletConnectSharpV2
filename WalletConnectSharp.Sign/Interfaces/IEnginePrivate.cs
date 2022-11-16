@@ -11,9 +11,9 @@ namespace WalletConnectSharp.Sign.Interfaces
     {
         internal Task<long> SendRequest<T, TR>(string topic, T parameters) where T : IWcMethod;
 
-        internal Task SendResult<T, TR>(long id, string topic, TR result) where T : IWcMethod;
+        internal Task SendResult<T, TR>(long id, string topic, TR result);
 
-        internal Task SendError<T, TR>(long id, string topic, ErrorResponse error) where T : IWcMethod;
+        internal Task SendError<T, TR>(long id, string topic, ErrorResponse error);
 
         internal Task ActivatePairing(string topic);
 
@@ -58,8 +58,6 @@ namespace WalletConnectSharp.Sign.Interfaces
         internal Task OnPairingDeleteRequest(string topic, JsonRpcRequest<PairingDelete> payload);
 
         internal Task OnSessionRequest<T, TR>(string topic, JsonRpcRequest<SessionRequest<T>> payload);
-
-        internal Task OnSessionRequestResponse<T>(string topic, JsonRpcResponse<T> payload);
 
         internal Task OnSessionEventRequest<T>(string topic, JsonRpcRequest<SessionEvent<T>> payload);
 

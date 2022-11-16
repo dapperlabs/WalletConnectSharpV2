@@ -18,9 +18,11 @@ namespace WalletConnectSharp.Sign.Interfaces
 
         Task<IAcknowledgement> Extend(ExtendParams @params);
 
+        Task<TR> Request<T, TR>(string method, string topic, T data, string chainId = null);
+        
         Task<TR> Request<T, TR>(RequestParams<T> @params);
 
-        Task Respond<T, TR>(RespondParams<TR> @params) where T : IWcMethod;
+        Task Respond<T, TR>(RespondParams<TR> @params);
 
         Task Emit<T>(EmitParams<T> @params);
 

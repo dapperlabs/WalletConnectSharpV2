@@ -126,12 +126,11 @@ namespace WalletConnectSharp.Sign
             }
         }
 
-        // TODO Deal with later?
-        public void HandleSessionRequestMessageType<T, TR>()
+        public TypedEventHandler<T, TR> SessionRequestEvents<T, TR>()
         {
-            HandleMessageType<SessionRequest<T>, TR>((s, request) => PrivateThis.OnSessionRequest<T, TR>(s, request), (s, response) => PrivateThis.OnSessionRequestResponse<TR>(s, response));
+            return SessionRequestEventHandler<T, TR>.GetInstance(this);
         }
-        
+
         public void HandleSessionRequestMessageType<T, TR>(Func<string, JsonRpcRequest<SessionRequest<T>>, Task> requestCallback, Func<string, JsonRpcResponse<TR>, Task> responseCallback)
         {
             HandleMessageType(requestCallback, responseCallback);
@@ -142,12 +141,15 @@ namespace WalletConnectSharp.Sign
             HandleMessageType(requestCallback, responseCallback);
         }
 
-        public void HandleMessageType<T, TR>(Func<string, JsonRpcRequest<T>, Task> requestCallback, Func<string, JsonRpcResponse<TR>, Task> responseCallback)
+        public async void HandleMessageType<T, TR>(Func<string, JsonRpcRequest<T>, Task> requestCallback, Func<string, JsonRpcResponse<TR>, Task> responseCallback)
         {
             var method = MethodForType<T>();
+            var rpcHistory = await this.Client.History.JsonRpcHistoryOfType<T, TR>();
             
             async void RequestCallback(object sender, GenericEvent<MessageEvent> e)
             {
+                if (requestCallback == null) return;
+                
                 var topic = e.EventData.Topic;
                 var message = e.EventData.Message;
 
@@ -155,12 +157,13 @@ namespace WalletConnectSharp.Sign
                 
                 (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Set(topic, payload, null);
 
-                if (requestCallback != null)
-                    await requestCallback(topic, payload);
+                await requestCallback(topic, payload);
             }
             
             async void ResponseCallback(object sender, GenericEvent<MessageEvent> e)
             {
+                if (responseCallback == null) return;
+                
                 var topic = e.EventData.Topic;
                 var message = e.EventData.Message;
 
@@ -168,8 +171,7 @@ namespace WalletConnectSharp.Sign
 
                 await (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Resolve(payload);
 
-                if (responseCallback != null)
-                    await responseCallback(topic, payload);
+                await responseCallback(topic, payload);
             }
 
             async void InspectResponseRaw(object sender, GenericEvent<DecodedMessageEvent> e)
@@ -181,7 +183,7 @@ namespace WalletConnectSharp.Sign
 
                 try
                 {
-                    var record = await (await this.Client.History.JsonRpcHistoryOfType<T, TR>()).Get(topic, payload.Id);
+                    var record = await rpcHistory.Get(topic, payload.Id);
 
                     // ignored if we can't find anything in the history
                     if (record == null) return;
@@ -713,12 +715,6 @@ namespace WalletConnectSharp.Sign
             }
         }
 
-        async Task IEnginePrivate.OnSessionRequestResponse<T>(string topic, JsonRpcResponse<T> payload)
-        {
-            var id = payload.Id;
-            this.Events.Trigger($"session_request{id}", payload);
-        }
-
         async Task IEnginePrivate.OnSessionEventRequest<T>(string topic, JsonRpcRequest<SessionEvent<T>> payload)
         {
             var id = payload.Id;
@@ -840,6 +836,8 @@ namespace WalletConnectSharp.Sign
                     Topic = session.Topic
                 };
                 await PrivateThis.SetExpiry(session.Topic, session.Expiry.Value);
+                await Client.Session.Set(session.Topic, completeSession);
+                
                 if (!string.IsNullOrWhiteSpace(topic))
                 {
                     await this.Client.Pairing.Update(topic, new PairingStruct()
@@ -1106,6 +1104,30 @@ namespace WalletConnectSharp.Sign
             return IAcknowledgement.FromTask(acknowledgedTask.Task);
         }
 
+        public async Task<TR> Request<T, TR>(string method, string topic, T data, string chainId = null)
+        {
+            await IsValidSessionTopic(topic);
+
+            string defaultChainId;
+            if (string.IsNullOrWhiteSpace(chainId))
+            {
+                var sessionData = Client.Session.Get(topic);
+                var firstRequiredNamespace = sessionData.RequiredNamespaces.Keys.ToArray()[0];
+                defaultChainId = sessionData.RequiredNamespaces[firstRequiredNamespace].Chains[0];
+            }
+            else
+            {
+                defaultChainId = chainId;
+            }
+
+            return await Request<T, TR>(new RequestParams<T>()
+            {
+                ChainId = defaultChainId,
+                Request = new JsonRpcRequest<T>(method, data),
+                Topic = topic
+            });
+        }
+
         public async Task<TR> Request<T, TR>(RequestParams<T> @params)
         {
             IsInitialized();
@@ -1113,8 +1135,7 @@ namespace WalletConnectSharp.Sign
             var chainId = @params.ChainId;
             var request = @params.Request;
             var topic = @params.Topic;
-            HandleSessionRequestMessageType<T, TR>();
-            
+
             var id = await PrivateThis.SendRequest<SessionRequest<T>, TR>(topic, new SessionRequest<T>()
             {
                 ChainId = chainId,
@@ -1122,18 +1143,23 @@ namespace WalletConnectSharp.Sign
             });
             
             var taskSource = new TaskCompletionSource<TR>();
-            this.Events.ListenForOnce<JsonRpcResponse<TR>>($"session_request{id}", (sender, e) =>
+
+            SessionRequestEvents<T, TR>()
+                .FilterResponses((e) => e.Response.Id == id)
+                .OnResponse += args =>
             {
-                if (e.EventData.IsError)
-                    taskSource.SetException(e.EventData.Error.ToException());
+                if (args.Response.IsError)
+                    taskSource.SetException(args.Response.Error.ToException());
                 else
-                    taskSource.SetResult(e.EventData.Result);
-            });
+                    taskSource.SetResult(args.Response.Result);
+
+                return Task.CompletedTask;
+            };
 
             return await taskSource.Task;
         }
 
-        public async Task Respond<T, TR>(RespondParams<TR> @params) where T : IWcMethod
+        public async Task Respond<T, TR>(RespondParams<TR> @params)
         {
             IsInitialized();
             await PrivateThis.IsValidRespond(@params);
