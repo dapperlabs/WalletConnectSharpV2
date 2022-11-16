@@ -22,7 +22,7 @@ namespace WalletConnectSharp.Network.Websocket
         private bool _registering;
         public Guid _context;
 
-        public TimeSpan OpenTimeout = TimeSpan.FromSeconds(10);
+        public TimeSpan OpenTimeout = TimeSpan.FromSeconds(60);
 
         public string Url
         {
