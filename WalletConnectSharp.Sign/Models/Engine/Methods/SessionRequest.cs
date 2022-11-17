@@ -5,7 +5,7 @@ using WalletConnectSharp.Sign.Interfaces;
 
 namespace WalletConnectSharp.Sign.Models.Engine.Methods
 {
-    [WcMethod("wc_sessionRequest")]
+    [RpcMethod("wc_sessionRequest")]
     [RpcRequestOptions(Clock.ONE_DAY, true, 1108)]
     [RpcResponseOptions(Clock.ONE_DAY, false, 1109)]
     public class SessionRequest<T> : IWcMethod

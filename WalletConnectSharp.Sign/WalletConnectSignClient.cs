@@ -184,9 +184,9 @@ namespace WalletConnectSharp.Sign
             return Engine.Extend(@params);
         }
 
-        public Task<TR> Request<T, TR>(string method, string topic, T data, string chainId = null)
+        public Task<TR> Request<T, TR>(string topic, T data, string chainId = null)
         {
-            return Engine.Request<T, TR>(method, topic, data, chainId);
+            return Engine.Request<T, TR>(topic, data, chainId);
         }
 
         public Task<TR> Request<T, TR>(RequestParams<T> @params)

@@ -4,6 +4,7 @@ using System.Net.WebSockets;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WalletConnectSharp.Common;
+using WalletConnectSharp.Common.Utils;
 using WalletConnectSharp.Events;
 using WalletConnectSharp.Events.Model;
 using WalletConnectSharp.Network.Models;
@@ -132,14 +133,10 @@ namespace WalletConnectSharp.Network.Websocket
             try
             {
                 _socket = new WebsocketClient(new Uri(_url));
-                var startTask = _socket.Start();
-                if (await Task.WhenAny(startTask, Task.Delay(OpenTimeout)) == startTask)
-                {
-                    OnOpen(_socket);
-                    return _socket;
-                }
 
-                throw new TimeoutException("Unavailable WS RPC url at " + _url);
+                await _socket.Start().WithTimeout(OpenTimeout, "Unavailable WS RPC url at " + _url);
+                OnOpen(_socket);
+                return _socket;
             }
             catch (Exception e)
             {

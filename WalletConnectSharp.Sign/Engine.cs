@@ -143,7 +143,7 @@ namespace WalletConnectSharp.Sign
 
         public async void HandleMessageType<T, TR>(Func<string, JsonRpcRequest<T>, Task> requestCallback, Func<string, JsonRpcResponse<TR>, Task> responseCallback)
         {
-            var method = MethodForType<T>();
+            var method = RpcMethodAttribute.MethodForType<T>();
             var rpcHistory = await this.Client.History.JsonRpcHistoryOfType<T, TR>();
             
             async void RequestCallback(object sender, GenericEvent<MessageEvent> e)
@@ -214,17 +214,6 @@ namespace WalletConnectSharp.Sign
             Events.ListenFor<DecodedMessageEvent>($"response_raw", InspectResponseRaw);
         }
 
-        public string MethodForType<T>()
-        {
-            var attributes = typeof(T).GetCustomAttributes(typeof(WcMethodAttribute), true);
-            if (attributes.Length != 1)
-                throw new Exception($"Type {typeof(T).FullName} has no WcMethod attribute!");
-
-            var method = attributes.Cast<WcMethodAttribute>().First().MethodName;
-
-            return method;
-        }
-
         public PublishOptions RpcRequestOptionsForType<T>()
         {
             var attributes = typeof(T).GetCustomAttributes(typeof(RpcRequestOptionsAttribute), true);
@@ -259,7 +248,7 @@ namespace WalletConnectSharp.Sign
 
         async Task<long> IEnginePrivate.SendRequest<T, TR>(string topic, T parameters)
         {
-            var method = MethodForType<T>();
+            var method = RpcMethodAttribute.MethodForType<T>();
 
             var payload = new JsonRpcRequest<T>(method, parameters);
 
@@ -1104,9 +1093,11 @@ namespace WalletConnectSharp.Sign
             return IAcknowledgement.FromTask(acknowledgedTask.Task);
         }
 
-        public async Task<TR> Request<T, TR>(string method, string topic, T data, string chainId = null)
+        public async Task<TR> Request<T, TR>(string topic, T data, string chainId = null)
         {
             await IsValidSessionTopic(topic);
+
+            var method = RpcMethodAttribute.MethodForType<T>();
 
             string defaultChainId;
             if (string.IsNullOrWhiteSpace(chainId))

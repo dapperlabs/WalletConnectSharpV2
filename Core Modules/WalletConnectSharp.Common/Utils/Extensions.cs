@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace WalletConnectSharp.Common.Utils
@@ -62,6 +63,46 @@ namespace WalletConnectSharp.Common.Utils
 
             return source + delim + HttpUtility.UrlEncode(key)
                    + "=" + HttpUtility.UrlEncode(value);
+        }
+
+        public static async Task<T> WithTimeout<T>(this Task<T> task, int timeout = 1000, string message = "Timeout of %t exceeded")
+        {
+            var resultT = await Task.WhenAny(task, Task.Delay(timeout));
+            if (resultT != task)
+            {
+                throw new TimeoutException(message.Replace("%t", timeout.ToString()));
+            }
+
+            return ((Task<T>) resultT).Result;
+        }
+        
+        public static async Task WithTimeout(this Task task, int timeout = 1000, string message = "Timeout of %t exceeded")
+        {
+            var resultT = await Task.WhenAny(task, Task.Delay(timeout));
+            if (resultT != task)
+            {
+                throw new TimeoutException(message.Replace("%t", timeout.ToString()));
+            }
+        }
+        
+        public static async Task<T> WithTimeout<T>(this Task<T> task, TimeSpan timeout, string message = "Timeout of %t exceeded")
+        {
+            var resultT = await Task.WhenAny(task, Task.Delay(timeout));
+            if (resultT != task)
+            {
+                throw new TimeoutException(message.Replace("%t", timeout.ToString()));
+            }
+
+            return ((Task<T>) resultT).Result;
+        }
+        
+        public static async Task WithTimeout(this Task task, TimeSpan timeout, string message = "Timeout of %t exceeded")
+        {
+            var resultT = await Task.WhenAny(task, Task.Delay(timeout));
+            if (resultT != task)
+            {
+                throw new TimeoutException(message.Replace("%t", timeout.ToString()));
+            }
         }
     }
 }

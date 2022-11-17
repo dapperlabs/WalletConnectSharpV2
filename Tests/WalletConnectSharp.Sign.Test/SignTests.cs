@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using WalletConnectSharp.Common.Model.Errors;
 using WalletConnectSharp.Common.Utils;
+using WalletConnectSharp.Network.Models;
 using WalletConnectSharp.Sign.Models;
 using WalletConnectSharp.Sign.Models.Engine;
 using Xunit;
@@ -12,7 +13,7 @@ namespace WalletConnectSharp.Sign.Test
     {
         private TwoClientsFixture _cryptoFixture;
 
-        [WcMethod("test_method"), RpcResponseOptions(Clock.ONE_MINUTE, false, 99999)]
+        [RpcMethod("test_method"), RpcResponseOptions(Clock.ONE_MINUTE, false, 99999)]
         public class TestRequest
         {
             public int a;
@@ -210,7 +211,6 @@ namespace WalletConnectSharp.Sign.Test
             
             // The wallet client will listen for the request with the "test_method" rpc method
             walletClient.Engine.SessionRequestEvents<TestRequest, TestResponse>()
-                    .FilterRequests((r) => r.Request.Method == testMethod)
                     .OnRequest += ( requestData) =>
                 {
                     var request = requestData.Request;
@@ -227,7 +227,7 @@ namespace WalletConnectSharp.Sign.Test
             // The dapp client will listen for the response
             // Normally, we wouldn't do this and just rely on the return value
             // from the dappClient.Engine.Request function call (the response Result or throws an Exception)
-            // We do it for here for the sake of testing
+            // We do it here for the sake of testing
             dappClient.Engine.SessionRequestEvents<TestRequest, TestResponse>()
                 .FilterResponses((r) => r.Topic == sessionData.Topic)
                 .OnResponse += (responseData) =>
@@ -242,11 +242,10 @@ namespace WalletConnectSharp.Sign.Test
             };
             
             // 2. Send the request from the dapp client
-            var requestTask = dappClient.Engine.Request<TestRequest, TestResponse>(testMethod, sessionData.Topic, testData);
+            var responseReturned = await dappClient.Engine.Request<TestRequest, TestResponse>(sessionData.Topic, testData);
             
-            // 3. Wait for the response
-            var responseReturned = await requestTask;
-            var eventResult = await pending.Task;
+            // 3. Wait for the response from the event listener
+            var eventResult = await pending.Task.WithTimeout(TimeSpan.FromSeconds(5));
             
             Assert.Equal(eventResult, a * b);
             Assert.Equal(eventResult, testData.a * testData.b);

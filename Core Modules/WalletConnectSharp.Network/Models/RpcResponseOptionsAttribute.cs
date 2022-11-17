@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace WalletConnectSharp.Sign.Models.Engine
+namespace WalletConnectSharp.Network.Models
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
     public class RpcResponseOptionsAttribute : RpcOptionsAttribute
