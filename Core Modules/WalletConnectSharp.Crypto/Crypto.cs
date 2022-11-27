@@ -160,16 +160,11 @@ namespace WalletConnectSharp.Crypto
         {
             this.IsInitialized();
 
-            // strength is not used so set to -1
+            // strength is not used so set to 1
             var options = new KeyGenerationParameters(SecureRandom.GetInstance("SHA256PRNG"), 1);
             X25519KeyPairGenerator generator = new X25519KeyPairGenerator();
             generator.Init(options);
-
-            /*var options = new KeyCreationParameters
-            {
-                ExportPolicy = KeyExportPolicies.AllowPlaintextArchiving
-            };*/
-
+            
             var keypair = generator.GenerateKeyPair();
             var publicKeyData = keypair.Public as X25519PublicKeyParameters;
             var privateKeyData = keypair.Private as X25519PrivateKeyParameters;
@@ -181,14 +176,6 @@ namespace WalletConnectSharp.Crypto
             var privateKey = privateKeyData.GetEncoded().ToHex();
 
             return this.SetPrivateKey(publicKey, privateKey);
-
-            /*using (var keypair = Key.Create(KeyAgreementAlgorithm.X25519, options))
-            {
-                var publicKey = keypair.PublicKey.Export(KeyBlobFormat.RawPublicKey).ToHex();
-                var privateKey = keypair.Export(KeyBlobFormat.RawPrivateKey).ToHex();
-
-                return this.SetPrivateKey(publicKey, privateKey);
-            }*/
         }
 
         /// <summary>
@@ -206,7 +193,6 @@ namespace WalletConnectSharp.Crypto
             var privateKey = await GetPrivateKey(selfPublicKey);
             var sharedKey = DeriveSharedKey(privateKey, peerPublicKey);
             var symKeyRaw = DeriveSymmetricKey(sharedKey);
-            //var symKeyRaw = symKey.Export(KeyBlobFormat.RawSymmetricKey);
 
             return await SetSymKey(symKeyRaw.ToHex(), overrideTopic);
         }
@@ -318,8 +304,6 @@ namespace WalletConnectSharp.Crypto
                 ? @params.SenderPublicKey.HexToByteArray()
                 : null;
 
-            //var format = KeyBlobFormat.RawSymmetricKey;
-
             var aead = new ChaCha20Poly1305();
             aead.Init(true, new ParametersWithIV(new KeyParameter(@params.SymKey.HexToByteArray()), rawIv));
 
@@ -344,14 +328,6 @@ namespace WalletConnectSharp.Crypto
 
                 encrypted = encryptedStream.ToArray();
             }
-            //aead.DoFinal(encrypted, 0);
-            
-            /*using (var key = Key.Import(AeadAlgorithm.ChaCha20Poly1305, @params.SymKey.HexToByteArray(), format))
-            {
-                encrypted = AeadAlgorithm.ChaCha20Poly1305.Encrypt(key, new ReadOnlySpan<byte>(rawIv),
-                    Array.Empty<byte>(),
-                    Encoding.UTF8.GetBytes(@params.Message));
-            }*/
 
             if (type1)
             {
@@ -525,7 +501,6 @@ namespace WalletConnectSharp.Crypto
             signer.BlockUpdate(data, 0, data.Length);
 
             var signature = signer.GenerateSignature();
-            //var signature = SignatureAlgorithm.Ed25519.Sign(keyPair, data);
             return EncodeJwt(new IridiumJWTSigned()
             {
                 Header = header,
@@ -639,9 +614,6 @@ namespace WalletConnectSharp.Crypto
 
         private byte[] DeriveSymmetricKey(byte[] secretKey)
         {
-            //var aead = new ChaCha20Poly1305();
-            //aead.Init(true, new AeadParameters(new KeyParameter(secretKey), 128, Array.Empty<byte>()));
-            
             var generator = new HkdfBytesGenerator(new Sha256Digest());
             generator.Init(new HkdfParameters(secretKey, Array.Empty<byte>(), Array.Empty<byte>()));
 
@@ -649,16 +621,6 @@ namespace WalletConnectSharp.Crypto
             generator.GenerateBytes(key, 0,32);
 
             return key;
-            
-            //aead.DoFinal()
-
-            /*var options = new KeyCreationParameters()
-            {
-                ExportPolicy = KeyExportPolicies.AllowPlaintextArchiving
-            };
-            
-            return KeyDerivationAlgorithm.HkdfSha256.DeriveKey(secretKey, Array.Empty<byte>(), Array.Empty<byte>(),
-                AeadAlgorithm.ChaCha20Poly1305, options);*/
         }
 
         private string DeserializeAndDecrypt(string symKey, string encoded)
@@ -668,7 +630,6 @@ namespace WalletConnectSharp.Crypto
             var iv = param.Iv;
             var type = int.Parse(Bases.Base10.Encode(param.Type));
             var isType1 = type == TYPE_1;
-            //var format = KeyBlobFormat.RawSymmetricKey;
             
             var aead = new ChaCha20Poly1305();
             aead.Init(false, new ParametersWithIV(new KeyParameter(symKey.HexToByteArray()), iv));
