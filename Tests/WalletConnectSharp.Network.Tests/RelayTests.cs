@@ -26,7 +26,7 @@ namespace WalletConnectSharp.Network.Tests
             new JsonRpcRequest<TopicData>(RelayProtocols.DefaultProtocol.Subscribe, new TopicData());
         
         private static readonly string TEST_RANDOM_HOST = "random.domain.that.does.not.exist";
-        private static readonly string GOOD_WS_URL = "wss://relay.walletconnect.com/";
+        private static readonly string GOOD_WS_URL = "wss://relay.walletconnect.com";
         private static readonly string BAD_WS_URL = "ws://" + TEST_RANDOM_HOST;
 
         public async Task<string> BuildGoodURL()

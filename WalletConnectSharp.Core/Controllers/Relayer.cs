@@ -18,7 +18,7 @@ namespace WalletConnectSharp.Core.Controllers
 {
     public class Relayer : IRelayer
     {
-        public static readonly string DEFAULT_RELAY_URL = "wss://relay.walletconnect.com/";
+        public static readonly string DEFAULT_RELAY_URL = "wss://relay.walletconnect.com";
         
         public EventDelegator Events { get; }
 

@@ -11,7 +11,6 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Agreement;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Generators;
-using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 using Org.BouncyCastle.Security;
@@ -34,7 +33,7 @@ namespace WalletConnectSharp.Crypto
     /// </summary>
     public class Crypto : ICrypto
     {
-        private const string CRYPTO_CLIENT_SEED = "client_ed25519_seed";
+        private readonly string CRYPTO_CLIENT_SEED = $"client_ed25519_seed_{new Random().Next()}";
         
         private const string MULTICODEC_ED25519_ENCODING = "base58btc";
         private const string MULTICODEC_ED25519_BASE = "z";
